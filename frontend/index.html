@@ -1,0 +1,153 @@
+<!DOCTYPE html>
+<html lang="de">
+<head>
+  <meta charset="UTF-8">
+  <title>QuantOS</title>
+  <link rel="stylesheet" href="css/style.css">
+  <script src="https://cdn.plot.ly/plotly-latest.min.js"></script>
+</head>
+<body>
+
+  <nav id="sidebar">
+    <div id="logo">
+      <span class="logo-icon">◈</span>
+      <span class="logo-text">QuantOS</span>
+    </div>
+    <ul id="nav-links">
+      <li class="nav-item active" data-page="home">
+        <span class="nav-icon">🏠</span><span class="nav-label">Home</span>
+      </li>
+      <li class="nav-item" data-page="backtest">
+        <span class="nav-icon">📊</span><span class="nav-label">Backtest</span>
+      </li>
+      <li class="nav-item" data-page="markov">
+        <span class="nav-icon">🔗</span><span class="nav-label">Markov</span>
+      </li>
+      <li class="nav-item" data-page="optimizer">
+        <span class="nav-icon">⚙️</span><span class="nav-label">Optimizer</span>
+      </li>
+    </ul>
+  </nav>
+
+  <main id="main-content">
+
+    <div id="page-home" class="page active">
+      <div id="home-container">
+        <h1>📈 QuantOS</h1>
+        <p class="subtitle">Deine persönliche Quant-Trading-Plattform</p>
+        <div id="module-cards"></div>
+      </div>
+    </div>
+
+    <div id="page-backtest" class="page">
+
+      <div id="perf-panel">
+        <div class="panel-header">⚡ Performance</div>
+        <div id="perf-metrics">
+          <p class="placeholder">Backtest starten um Ergebnisse zu sehen</p>
+        </div>
+      </div>
+
+      <div id="backtest-body">
+
+        <div id="panels-container">
+
+          <div id="chart-panel">
+            <div class="panel-header">📈 Chart</div>
+            <div class="panel-content">
+              <div id="plotly-chart"></div>
+              <div class="plot-legend" id="legend-chart"></div>
+            </div>
+          </div>
+
+          <div id="equity-panel">
+            <div class="panel-header">📊 Equity Curve</div>
+            <div class="panel-content">
+              <div id="plotly-equity"></div>
+              <div class="plot-legend" id="legend-equity"></div>
+            </div>
+          </div>
+
+        </div>
+
+        <div id="controls-panel">
+          <div class="ctrl-section">
+            <div class="ctrl-section-label">DATEN</div>
+            <div class="ctrl-row">
+              <label>Symbol</label>
+              <input type="text" id="ctrl-symbol" value="EURUSD=X">
+            </div>
+            <div class="ctrl-row">
+              <label>Timeframe</label>
+              <select id="ctrl-interval">
+                <option value="1d">1 Tag</option>
+                <option value="1h">1 Stunde</option>
+                <option value="30m">30 Min</option>
+                <option value="15m">15 Min</option>
+                <option value="5m">5 Min</option>
+              </select>
+            </div>
+            <div class="ctrl-row">
+              <label>Von</label>
+              <input type="date" id="ctrl-start" value="2024-01-01">
+            </div>
+            <div class="ctrl-row">
+              <label>Bis</label>
+              <input type="date" id="ctrl-end" value="2025-01-01">
+            </div>
+            <div class="ctrl-row">
+              <label>Kapital €</label>
+              <input type="number" id="ctrl-capital" value="10000">
+            </div>
+          </div>
+
+          <div class="ctrl-divider"></div>
+
+          <div class="ctrl-section">
+            <div class="ctrl-section-label">STRATEGIE</div>
+            <div class="ctrl-row">
+              <label>Strategie</label>
+              <select id="ctrl-strategy"></select>
+            </div>
+            <div class="ctrl-row">
+              <label>Fast SMA</label>
+              <input type="number" id="ctrl-sma" value="20">
+            </div>
+          </div>
+
+          <div class="ctrl-divider"></div>
+
+          <div class="ctrl-section">
+            <div class="ctrl-section-label">INDIKATOREN</div>
+            <div class="ctrl-row-inline">
+              <select id="ctrl-indicator"></select>
+              <button id="btn-add-indicator">➕</button>
+            </div>
+            <div id="active-indicators"></div>
+          </div>
+
+          <div style="flex:1"></div>
+          <button id="btn-run">▶ Backtest starten</button>
+        </div>
+
+      </div>
+    </div>
+
+    <div id="page-markov" class="page">
+      <div class="coming-soon"><span>🔗</span><h2>Markov</h2><p>Coming soon</p></div>
+    </div>
+
+    <div id="page-optimizer" class="page">
+      <div class="coming-soon"><span>⚙️</span><h2>Optimizer</h2><p>Coming soon</p></div>
+    </div>
+
+  </main>
+
+  <script src="../node_modules/split.js/dist/split.js"></script>
+  <script src="js/api.js"></script>
+  <script src="js/home.js"></script>
+  <script src="js/backtest.js"></script>
+  <script src="js/app.js"></script>
+
+</body>
+</html>

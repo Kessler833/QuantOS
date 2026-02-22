@@ -1,0 +1,15 @@
+{
+  "name": "trading-platform",
+  "version": "1.0.0",
+  "main": "electron/main.js",
+  "scripts": {
+    "start": "electron ."
+  },
+  "devDependencies": {
+    "electron": "^33.0.0",
+    "electron-builder": "^25.0.0"
+  },
+  "dependencies": {
+    "split.js": "^1.6.5"
+  }
+}

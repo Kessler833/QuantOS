@@ -1,0 +1,347 @@
+* { margin: 0; padding: 0; box-sizing: border-box; }
+
+html, body {
+  height: 100%;
+  overflow: hidden;
+  background: #0f0f1a;
+  color: #e0e0e0;
+  font-family: 'Segoe UI', Arial, sans-serif;
+  font-size: 13px;
+}
+
+body { display: flex; }
+
+/* ── SIDEBAR ────────────────────────────────── */
+#sidebar {
+  width: 180px;
+  min-width: 180px;
+  height: 100vh;
+  background: #0a0a14;
+  display: flex;
+  flex-direction: column;
+  border-right: 1px solid #1e1e30;
+  transition: width 0.2s, min-width 0.2s;
+  overflow: hidden;
+}
+
+#sidebar.collapsed { width: 52px; min-width: 52px; }
+
+#main-content {
+  flex: 1;
+  height: 100vh;
+  overflow: hidden;
+  display: flex;
+  flex-direction: column;
+  min-width: 0;
+}
+
+#logo {
+  padding: 20px 16px;
+  font-size: 15px;
+  font-weight: 700;
+  color: #7aa2f7;
+  border-bottom: 1px solid #1e1e30;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  white-space: nowrap;
+  overflow: hidden;
+}
+
+#sidebar.collapsed #logo { justify-content: center; padding: 20px 0; }
+.logo-icon { font-size: 18px; flex-shrink: 0; }
+
+#sidebar.collapsed .logo-text,
+#sidebar.collapsed .nav-label { display: none; }
+
+#nav-links { list-style: none; padding: 12px 0; flex: 1; }
+
+.nav-item {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 11px 16px;
+  cursor: pointer;
+  color: #6c7086;
+  border-left: 3px solid transparent;
+  transition: all 0.15s;
+  white-space: nowrap;
+  overflow: hidden;
+}
+
+#sidebar.collapsed .nav-item { justify-content: center; padding: 12px 0; }
+.nav-item:hover  { color: #cdd6f4; background: #1a1a2e; }
+.nav-item.active { color: #7aa2f7; border-left-color: #7aa2f7; background: #1a1a2e; }
+.nav-icon { font-size: 15px; flex-shrink: 0; }
+
+/* ── PAGES ──────────────────────────────────── */
+.page { display: none; flex: 1; overflow: hidden; min-height: 0; }
+.page.active { display: flex; flex-direction: column; height: 100%; }
+
+/* ── HOME ───────────────────────────────────── */
+#home-container { padding: 60px; max-width: 900px; }
+#home-container h1 { font-size: 32px; color: #cdd6f4; margin-bottom: 8px; }
+.subtitle { color: #6c7086; font-size: 15px; margin-bottom: 48px; }
+#module-cards { display: flex; gap: 20px; flex-wrap: wrap; }
+
+.module-card {
+  background: #1a1a2e;
+  border: 1px solid #2a2a3e;
+  border-radius: 10px;
+  padding: 28px;
+  width: 220px;
+  cursor: pointer;
+  transition: all 0.2s;
+}
+
+.module-card:hover         { border-color: #7aa2f7; transform: translateY(-2px); }
+.module-card .card-icon    { font-size: 28px; margin-bottom: 12px; }
+.module-card .card-title   { font-size: 15px; font-weight: 600; color: #cdd6f4; margin-bottom: 8px; }
+.module-card .card-desc    { font-size: 12px; color: #6c7086; line-height: 1.5; }
+
+/* ── BACKTEST ───────────────────────────────── */
+#page-backtest { flex-direction: column; }
+
+/* ── PERFORMANCE PANEL ──────────────────────── */
+#perf-panel {
+  flex: none;
+  min-height: 0;        /* ← Split.js übernimmt */
+  display: flex;
+  flex-direction: column;
+  background: #0a0a14;
+  border-bottom: 1px solid #1e1e30;
+  overflow: hidden;
+}
+
+#perf-metrics {
+  display: flex;
+  flex-wrap: nowrap;
+  gap: 5px;
+  padding: 5px 10px;
+  flex: 1;
+  align-items: center;
+  overflow: hidden;
+}
+
+#perf-metrics .placeholder { color: #3a3a5e; font-size: 11px; }
+
+.perf-metric-inline {
+  flex: 0 0 auto;
+  background: #1a1a2e;
+  border-radius: 6px;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 1px;
+  overflow: hidden;
+}
+
+.perf-metric-inline .label {
+  color: #8899bb;
+  letter-spacing: 0.4px;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  max-width: 100%;
+  text-align: center;
+  font-weight: 500;
+}
+
+.perf-metric-inline .value {
+  font-weight: 700;
+  color: #cdd6f4;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  max-width: 100%;
+  text-align: center;
+  line-height: 1.1;
+}
+
+.perf-metric-inline .value.sub      { font-weight: 400; }
+.perf-metric-inline .value.positive { color: #26a69a; }
+.perf-metric-inline .value.negative { color: #ef5350; }
+
+/* ── BACKTEST BODY ──────────────────────────── */
+#backtest-body {
+  flex: none;
+  min-height: 0;        /* ← wichtig für Split.js */
+  display: flex;
+  overflow: hidden;
+}
+
+/* ── PANELS + CONTROLS als Split-Kinder ─────── */
+/* min-height: 0 + min-width: 0 damit overflow korrekt greift */
+#panels-container {
+  display: flex;
+  flex-direction: column;
+  overflow: hidden;
+  min-width: 0;
+  min-height: 0;
+  padding-bottom: 1.5vh;   /* ← dynamischer unterer Rand */
+  background: #0f0f1a;
+}
+
+#controls-panel {
+  background: #0a0a14;
+  border-left: 1px solid #1e1e30;
+  display: flex;
+  flex-direction: column;
+  padding: 14px;
+  overflow-y: auto;        /* scrollt wenn Inhalt zu groß */
+  overflow-x: hidden;
+  min-width: 140px;
+  min-height: 0;           /* ← lässt overflow-y greifen */
+}
+
+/* ── CHART / EQUITY PANELS ──────────────────── */
+#chart-panel, #equity-panel {
+  display: flex;
+  flex-direction: column;
+  overflow: hidden;
+  min-height: 0;
+}
+
+.panel-header {
+  background: #0d0d1e;
+  color: #6c7086;
+  padding: 7px 14px;
+  font-size: 11px;
+  font-weight: 600;
+  letter-spacing: 0.5px;
+  border-bottom: 1px solid #1e1e30;
+  flex-shrink: 0;
+}
+
+.panel-content {
+  flex: 1;
+  overflow: hidden;
+  padding: 6px 6px 0 6px;
+  display: flex;
+  flex-direction: column;
+  min-height: 0;
+}
+
+#plotly-chart, #plotly-equity {
+  flex: 1;
+  width: 100%;
+  min-height: 0;
+}
+
+/* ── EXTERNE LEGENDE ────────────────────────── */
+.plot-legend {
+  flex-shrink: 0;
+  display: flex;
+  flex-wrap: wrap;
+  gap: 4px 14px;
+  padding: 4px 6px;
+  border-top: 1px solid #1e1e30;
+  background: #0d0d1e;
+}
+
+.legend-item {
+  display: flex;
+  align-items: center;
+  gap: 5px;
+  font-size: 10px;
+  color: #9a9ab0;
+  white-space: nowrap;
+}
+
+/* ── CONTROLS INHALT ────────────────────────── */
+.ctrl-section { display: flex; flex-direction: column; gap: 7px; padding-bottom: 14px; }
+
+.ctrl-section-label {
+  font-size: 9px;
+  font-weight: 700;
+  color: #3a3a5e;
+  letter-spacing: 1px;
+  padding-bottom: 6px;
+  border-bottom: 1px solid #1e1e30;
+  margin-bottom: 2px;
+}
+
+.ctrl-row { display: flex; flex-direction: column; gap: 3px; }
+.ctrl-row label { font-size: 10px; color: #6c7086; }
+.ctrl-row-inline { display: flex; gap: 6px; align-items: center; }
+
+#controls-panel input,
+#controls-panel select {
+  width: 100%;
+  background: #1a1a2e;
+  border: 1px solid #2a2a3e;
+  color: #cdd6f4;
+  padding: 6px 8px;
+  border-radius: 5px;
+  font-size: 12px;
+}
+
+#controls-panel input:focus,
+#controls-panel select:focus { outline: none; border-color: #7aa2f7; }
+
+.ctrl-divider { height: 1px; background: #1e1e30; margin: 4px 0 14px 0; }
+
+#btn-add-indicator {
+  background: #1a1a2e;
+  border: 1px solid #2a2a3e;
+  color: #cdd6f4;
+  padding: 6px 10px;
+  border-radius: 5px;
+  cursor: pointer;
+  font-size: 12px;
+  flex-shrink: 0;
+}
+
+#active-indicators { display: flex; flex-direction: column; gap: 5px; margin-top: 4px; }
+
+.indicator-tag {
+  background: #1a1a2e;
+  border: 1px solid #2a2a3e;
+  color: #7aa2f7;
+  padding: 4px 8px;
+  border-radius: 4px;
+  font-size: 11px;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+}
+
+.indicator-tag .remove-btn       { cursor: pointer; color: #3a3a5e; }
+.indicator-tag .remove-btn:hover { color: #ef5350; }
+
+#btn-run {
+  background: #7aa2f7;
+  color: #0a0a14;
+  border: none;
+  padding: 10px;
+  border-radius: 6px;
+  font-weight: 700;
+  cursor: pointer;
+  font-size: 13px;
+  transition: background 0.2s;
+  margin-top: 8px;
+  flex-shrink: 0;
+}
+
+#btn-run:hover    { background: #5a82d7; }
+#btn-run:disabled { background: #2a2a3e; color: #555; cursor: not-allowed; }
+
+/* ── SPLIT.JS ───────────────────────────────── */
+.gutter            { background: #0d0d1e; transition: background 0.2s; z-index: 1; }
+.gutter:hover      { background: #7aa2f7; }
+.gutter-horizontal { cursor: col-resize; width: 5px !important; }
+.gutter-vertical   { cursor: row-resize; height: 5px !important; }
+
+/* ── COMING SOON ────────────────────────────── */
+.coming-soon {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  height: 100%;
+  color: #3a3a5e;
+}
+
+.coming-soon span { font-size: 48px; margin-bottom: 16px; }
+.coming-soon h2   { font-size: 22px; margin-bottom: 8px; }
