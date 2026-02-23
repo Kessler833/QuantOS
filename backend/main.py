@@ -13,8 +13,7 @@ from alpaca.data.timeframe import TimeFrame, TimeFrameUnit
 from alpaca.data.enums import Adjustment, DataFeed
 
 from data import config
-
-
+from backend.api.symbols import get_equity_symbols
 
 app = FastAPI()
 
@@ -61,7 +60,7 @@ def load_modules(folder):
     return modules
 
 indicators = load_modules("indicators")
-strategies  = load_modules("strategies")
+strategies = load_modules("strategies")
 
 # ── MODELS ───────────────────────────────────────────────
 class BacktestRequest(BaseModel):
@@ -83,8 +82,19 @@ def health():
 def get_modules():
     return {
         "indicators": list(indicators.keys()),
-        "strategies":  list(strategies.keys())
+        "strategies": list(strategies.keys())
     }
+
+@app.get("/api/symbols")
+def list_symbols():
+    """
+    Liefert alle aktiven, handelbaren US-Equity-Symbole (Stocks + ETFs)
+    für das Frontend-Menü.
+    """
+    try:
+        return {"symbols": get_equity_symbols()}
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=str(e))
 
 @app.post("/api/backtest")
 def run_backtest(req: BacktestRequest):
