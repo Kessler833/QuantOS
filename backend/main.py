@@ -1,11 +1,19 @@
 from fastapi import FastAPI, HTTPException
 from fastapi.middleware.cors import CORSMiddleware
 from pydantic import BaseModel
-import yfinance as yf
 import pandas as pd
 import numpy as np
 import importlib
 from pathlib import Path
+from datetime import datetime
+
+from alpaca.data.historical import StockHistoricalDataClient, CryptoHistoricalDataClient
+from alpaca.data.requests import StockBarsRequest, CryptoBarsRequest
+from alpaca.data.timeframe import TimeFrame, TimeFrameUnit
+from alpaca.data.enums import Adjustment, DataFeed
+
+from data import config
+
 
 
 app = FastAPI()
@@ -17,11 +25,29 @@ app.add_middleware(
     allow_headers=["*"],
 )
 
+# ── ALPACA CLIENTS ───────────────────────────────────────
+_stock_client  = StockHistoricalDataClient(config.ALPACA_API_KEY, config.ALPACA_SECRET_KEY)
+_crypto_client = CryptoHistoricalDataClient()
+
+SYMBOL_MAP = {
+    "^GSPC": "SPY",  "^SPX": "SPY",   "^DJI":  "DIA",
+    "^IXIC": "QQQ",  "^NDX": "QQQ",
+    "BTC-USD": "BTC/USD", "ETH-USD": "ETH/USD",
+}
+CRYPTO_SYMBOLS = {"BTC/USD", "ETH/USD", "SOL/USD", "LTC/USD", "DOGE/USD"}
+
+TIMEFRAME_MAP = {
+    "1d":  TimeFrame.Day,
+    "1h":  TimeFrame.Hour,
+    "30m": TimeFrame(30, TimeFrameUnit.Minute),
+    "15m": TimeFrame(15, TimeFrameUnit.Minute),
+    "5m":  TimeFrame(5,  TimeFrameUnit.Minute),
+    "1m":  TimeFrame.Minute,
+}
 
 # ── HILFSFUNKTION ────────────────────────────────────────
 def to_list(series):
     return [None if pd.isna(x) else round(float(x), 5) for x in series]
-
 
 # ── MODULE LADEN ─────────────────────────────────────────
 def load_modules(folder):
@@ -34,14 +60,12 @@ def load_modules(folder):
             modules[file.stem] = getattr(mod, file.stem)
     return modules
 
-
 indicators = load_modules("indicators")
 strategies  = load_modules("strategies")
 
-
 # ── MODELS ───────────────────────────────────────────────
 class BacktestRequest(BaseModel):
-    symbol:            str       = "EURUSD=X"
+    symbol:            str       = "SPY"
     interval:          str       = "1d"
     start:             str       = "2024-01-01"
     end:               str       = "2025-01-01"
@@ -50,12 +74,10 @@ class BacktestRequest(BaseModel):
     strategy:          str       = ""
     active_indicators: list[str] = []
 
-
 # ── ENDPOINTS ────────────────────────────────────────────
 @app.get("/api/health")
 def health():
     return {"status": "running"}
-
 
 @app.get("/api/modules")
 def get_modules():
@@ -64,19 +86,36 @@ def get_modules():
         "strategies":  list(strategies.keys())
     }
 
-
 @app.post("/api/backtest")
 def run_backtest(req: BacktestRequest):
     try:
-        df = yf.download(
-            req.symbol, start=req.start, end=req.end,
-            interval=req.interval, auto_adjust=True,
-            multi_level_index=False
-        )
+        mapped   = SYMBOL_MAP.get(req.symbol, req.symbol)
+        tf       = TIMEFRAME_MAP.get(req.interval, TimeFrame.Day)
+        start_dt = datetime.strptime(req.start, "%Y-%m-%d")
+        end_dt   = datetime.strptime(req.end,   "%Y-%m-%d")
+
+        if mapped in CRYPTO_SYMBOLS:
+            bars_req = CryptoBarsRequest(
+                symbol_or_symbols=mapped, timeframe=tf,
+                start=start_dt, end=end_dt
+            )
+            bars = _crypto_client.get_crypto_bars(bars_req)
+        else:
+            bars_req = StockBarsRequest(
+                symbol_or_symbols=mapped, timeframe=tf,
+                start=start_dt, end=end_dt,
+                feed=DataFeed.SIP,
+                adjustment=Adjustment.ALL
+            )
+            bars = _stock_client.get_stock_bars(bars_req)
+
+        df = bars.df
+        if isinstance(df.index, pd.MultiIndex):
+            df = df.reset_index(level=0, drop=True)
+        df.columns = [c.lower() for c in df.columns]
+
         if df.empty:
             raise HTTPException(status_code=400, detail="Keine Daten. Symbol oder Zeitraum prüfen.")
-
-        df.columns = [c.lower() for c in df.columns]
 
         for name in req.active_indicators:
             if name in indicators:
@@ -98,9 +137,7 @@ def run_backtest(req: BacktestRequest):
         df["bh_equity"] = req.capital * (1 + df["returns"]).cumprod()
 
         # ── POTENTIAL EQUITY ZONE ────────────────────────
-        equity_high_list = []
-        equity_low_list  = []
-
+        equity_high_list, equity_low_list = [], []
         equity_vals   = df["equity"].values
         position_vals = df["position"].values
         high_vals     = df["high"].values
@@ -134,7 +171,7 @@ def run_backtest(req: BacktestRequest):
         profit_factor = round(gross_profit / gross_loss, 2) if gross_loss > 0 else 999
         calmar        = round(float(tot_r / abs(float(max_dd))), 2) if max_dd != 0 else 0
 
-        # ── EQUITY PROJEKTION: 1/6 der Datenlänge ────────
+        # ── EQUITY PROJEKTION ────────────────────────────
         proj_days  = max(5, len(df) // 4)
         daily_mean = float(df["strat_ret"].mean())
         daily_std  = float(df["strat_ret"].std())

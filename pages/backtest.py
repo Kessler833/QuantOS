@@ -1,12 +1,41 @@
 import streamlit as st
-import yfinance as yf
 import plotly.graph_objects as go
 from plotly.subplots import make_subplots
 import pandas as pd
 import numpy as np
 import importlib
 from pathlib import Path
+from datetime import datetime
 from streamlit_elements import elements, dashboard, mui
+
+from alpaca.data.historical import StockHistoricalDataClient, CryptoHistoricalDataClient
+from alpaca.data.requests import StockBarsRequest, CryptoBarsRequest
+from alpaca.data.timeframe import TimeFrame, TimeFrameUnit
+from alpaca.data.enums import Adjustment, DataFeed
+
+from data import config
+
+
+# ── ALPACA CLIENTS ───────────────────────────────────────
+_stock_client  = StockHistoricalDataClient(config.ALPACA_API_KEY, config.ALPACA_SECRET_KEY)
+_crypto_client = CryptoHistoricalDataClient()
+
+# yfinance-Symbole → Alpaca-Symbole
+SYMBOL_MAP = {
+    "^GSPC": "SPY",  "^SPX": "SPY",   "^DJI":  "DIA",
+    "^IXIC": "QQQ",  "^NDX": "QQQ",
+    "BTC-USD": "BTC/USD", "ETH-USD": "ETH/USD",
+}
+CRYPTO_SYMBOLS = {"BTC/USD", "ETH/USD", "SOL/USD", "LTC/USD", "DOGE/USD"}
+
+TIMEFRAME_MAP = {
+    "1d":  TimeFrame.Day,
+    "1h":  TimeFrame.Hour,
+    "30m": TimeFrame(30, TimeFrameUnit.Minute),
+    "15m": TimeFrame(15, TimeFrameUnit.Minute),
+    "5m":  TimeFrame(5,  TimeFrameUnit.Minute),
+    "1m":  TimeFrame.Minute,
+}
 
 # ── AUTOMATISCHES LADEN ──────────────────────────────────
 def load_modules(folder):
@@ -31,8 +60,11 @@ if "df" not in st.session_state:
 # ── SIDEBAR ──────────────────────────────────────────────
 with st.sidebar:
     st.header("⚙️ Einstellungen")
-    symbol   = st.text_input("Symbol", value="EURUSD=X")
-    interval = st.selectbox("Timeframe", ["1d","1h","30m","15m","5m"])
+    symbol   = st.text_input(
+        "Symbol", value="SPY",
+        help="Aktien/ETF: AAPL, SPY, QQQ, DIA | Crypto: BTC/USD, ETH/USD | Indices via ETF: SPY=S&P500, QQQ=Nasdaq, DIA=Dow"
+    )
+    interval = st.selectbox("Timeframe", ["1d", "1h", "30m", "15m", "5m"])
     start    = st.date_input("Von", value=pd.to_datetime("2024-01-01"))
     end      = st.date_input("Bis",  value=pd.to_datetime("2025-01-01"))
 
@@ -45,7 +77,6 @@ with st.sidebar:
             st.session_state.active_indicators.append(selected)
             st.rerun()
 
-    # Aktive Indikatoren anzeigen mit X zum Entfernen
     if st.session_state.active_indicators:
         st.markdown("**Aktiv:**")
         for name in list(st.session_state.active_indicators):
@@ -64,15 +95,34 @@ with st.sidebar:
 
 # ── DATEN LADEN ──────────────────────────────────────────
 @st.cache_data
-def load_data(symbol, start, end, interval):
-    df = yf.download(
-        symbol, start=start, end=end,
-        interval=interval, auto_adjust=True,
-        multi_level_index=False
-    )
+def load_data(symbol: str, start: str, end: str, interval: str) -> pd.DataFrame:
+    mapped   = SYMBOL_MAP.get(symbol, symbol)
+    tf       = TIMEFRAME_MAP.get(interval, TimeFrame.Day)
+    start_dt = datetime.strptime(start, "%Y-%m-%d")
+    end_dt   = datetime.strptime(end,   "%Y-%m-%d")
+
+    if mapped in CRYPTO_SYMBOLS:
+        req  = CryptoBarsRequest(
+            symbol_or_symbols=mapped, timeframe=tf,
+            start=start_dt, end=end_dt
+        )
+        bars = _crypto_client.get_crypto_bars(req)
+    else:
+        req  = StockBarsRequest(
+            symbol_or_symbols=mapped, timeframe=tf,
+            start=start_dt, end=end_dt,
+            feed=DataFeed.SIP,
+            adjustment=Adjustment.ALL
+        )
+        bars = _stock_client.get_stock_bars(req)
+
+    df = bars.df
+    if isinstance(df.index, pd.MultiIndex):
+        df = df.reset_index(level=0, drop=True)
     df.columns = [c.lower() for c in df.columns]
     return df
 
+# ── BACKTEST LOGIK ────────────────────────────────────────
 if run:
     with st.spinner("Lade Daten..."):
         df = load_data(symbol, str(start), str(end), interval)
@@ -119,9 +169,9 @@ if st.session_state.df is not None:
     capital = st.session_state.capital
 
     layout = [
-        dashboard.Item("metriken",  0, 0, 12, 2,  isResizable=True),
-        dashboard.Item("chart",     0, 2, 8,  6,  isResizable=True),
-        dashboard.Item("equity",    8, 2, 4,  6,  isResizable=True),
+        dashboard.Item("metriken", 0, 0, 12, 2, isResizable=True),
+        dashboard.Item("chart",    0, 2, 8,  6, isResizable=True),
+        dashboard.Item("equity",   8, 2, 4,  6, isResizable=True),
     ]
 
     with elements("backtest_dashboard"):
@@ -174,7 +224,7 @@ if st.session_state.df is not None:
                     fig.add_hline(y=30, line_dash="dot", line_color="green", row=2, col=1)
 
                 fig.update_layout(template="plotly_dark", height=400,
-                                  xaxis_rangeslider_visible=False, margin=dict(t=10,b=10),
+                                  xaxis_rangeslider_visible=False, margin=dict(t=10, b=10),
                                   legend=dict(orientation="h", y=1.02))
                 st.plotly_chart(fig, use_container_width=True)
 
@@ -189,6 +239,6 @@ if st.session_state.df is not None:
                 fig2.add_trace(go.Scatter(x=df.index, y=df["bh_equity"],
                     line=dict(color="gray", width=1.5, dash="dot"), name="Buy & Hold"))
                 fig2.update_layout(template="plotly_dark", height=380,
-                                   margin=dict(t=10,b=10),
+                                   margin=dict(t=10, b=10),
                                    xaxis_rangeslider_visible=False)
                 st.plotly_chart(fig2, use_container_width=True)
