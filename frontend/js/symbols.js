@@ -14,72 +14,77 @@ const symbolList = document.getElementById('symbol-list');
 btnBrowse.addEventListener('click', openModal);
 btnClose.addEventListener('click', closeModal);
 window.addEventListener('click', (e) => {
-  if (e.target === modal) closeModal();
+    if (e.target === modal) closeModal();
 });
 
 async function openModal() {
-  modal.style.display = 'flex';
-  searchInput.value = '';
-  searchInput.focus();
+    modal.style.display = 'flex';
+    searchInput.value = '';
+    searchInput.focus();
 
-  if (!symbolData) {
-    symbolList.innerHTML = '<p class="loading">Lade Symbole...</p>';
-    try {
-      const res = await fetch('http://localhost:8000/api/symbols');
-      const data = await res.json();
-      symbolData = data;
-      console.log('Received data:', symbolData); 
-      renderView();
-    } catch (err) {
-      symbolList.innerHTML = '<p class="error">❌ Fehler beim Laden der Symbole</p>';
-      console.error(err);
+    if (!symbolData) {
+        symbolList.innerHTML = '<p class="loading">Lade Symbole...</p>';
+        try {
+            const res = await fetch('http://localhost:8000/api/symbols');
+            const data = await res.json();
+
+            // Fix: Unwrap if nested under "symbols"
+            symbolData = data.symbols ? data.symbols : data;
+
+            console.log('Received data:', symbolData);
+
+
+            renderView();
+        } catch (err) {
+            symbolList.innerHTML = '<p class="error">❌ Fehler beim Laden der Symbole</p>';
+            console.error(err);
+        }
+    } else {
+        renderView();
     }
-  } else {
-    renderView();
-  }
 }
 
 function closeModal() {
-  modal.style.display = 'none';
+    modal.style.display = 'none';
 }
 
 function renderView() {
-  // Toggle-Button hinzufügen falls noch nicht vorhanden
-  let toggleBtn = document.getElementById('view-toggle');
-  if (!toggleBtn) {
-    toggleBtn = document.createElement('button');
-    toggleBtn.id = 'view-toggle';
-    toggleBtn.className = 'view-toggle';
-    toggleBtn.innerHTML = '📋 Alphabetisch';
-    document.querySelector('.modal-header').appendChild(toggleBtn);
-    
-    toggleBtn.addEventListener('click', () => {
-      currentView = currentView === 'grouped' ? 'alphabetical' : 'grouped';
-      toggleBtn.innerHTML = currentView === 'grouped' ? '📋 Alphabetisch' : '📊 Gruppiert';
-      renderView();
-    });
-  }
+    // Toggle-Button hinzufügen falls noch nicht vorhanden
+    let toggleBtn = document.getElementById('view-toggle');
+    if (!toggleBtn) {
+        toggleBtn = document.createElement('button');
+        toggleBtn.id = 'view-toggle';
+        toggleBtn.className = 'view-toggle';
+        toggleBtn.innerHTML = '📋 Alphabetisch';
+        document.querySelector('.modal-header').appendChild(toggleBtn);
 
-  if (currentView === 'grouped') {
-    renderGrouped(symbolData.groups);
-  } else {
-    renderFlat(symbolData.flat);
-  }
+        toggleBtn.addEventListener('click', () => {
+            currentView = currentView === 'grouped' ? 'alphabetical' : 'grouped';
+            toggleBtn.innerHTML = currentView === 'grouped' ? '📋 Alphabetisch' : '📊 Gruppiert';
+            renderView();
+        });
+    }
+
+    if (currentView === 'grouped') {
+        renderGrouped(symbolData.groups);
+    } else {
+        renderFlat(symbolData.flat);
+    }
 }
 
 function renderGrouped(groups) {
-  const icons = {
-    "ETFs": "📊",
-    "Large Cap Stocks": "🏢",
-    "Mid Cap Stocks": "📈",
-    "Small Cap Stocks": "🔹"
-  };
+    const icons = {
+        "ETFs": "📊",
+        "Large Cap Stocks": "🏢",
+        "Mid Cap Stocks": "📈",
+        "Small Cap Stocks": "🔹"
+    };
 
-  symbolList.innerHTML = Object.entries(groups).map(([groupName, symbols]) => {
-    if (symbols.length === 0) return '';
-    
-    const icon = icons[groupName] || "📁";
-    return `
+    symbolList.innerHTML = Object.entries(groups).map(([groupName, symbols]) => {
+        if (symbols.length === 0) return '';
+
+        const icon = icons[groupName] || "📁";
+        return `
       <div class="symbol-group">
         <div class="group-header" data-group="${groupName}">
           <span class="group-icon">${icon}</span>
@@ -100,19 +105,19 @@ function renderGrouped(groups) {
         </div>
       </div>
     `;
-  }).join('');
+    }).join('');
 
-  attachRowHandlers();
-  attachGroupToggle();
+    attachRowHandlers();
+    attachGroupToggle();
 }
 
 function renderFlat(symbols) {
-  if (symbols.length === 0) {
-    symbolList.innerHTML = '<p class="no-results">Keine Symbole gefunden</p>';
-    return;
-  }
+    if (symbols.length === 0) {
+        symbolList.innerHTML = '<p class="no-results">Keine Symbole gefunden</p>';
+        return;
+    }
 
-  symbolList.innerHTML = symbols.map(s => `
+    symbolList.innerHTML = symbols.map(s => `
     <div class="symbol-row" data-symbol="${s.symbol}">
       <div class="symbol-info">
         <span class="symbol-ticker">${s.symbol}</span>
@@ -122,49 +127,49 @@ function renderFlat(symbols) {
     </div>
   `).join('');
 
-  attachRowHandlers();
+    attachRowHandlers();
 }
 
 function attachRowHandlers() {
-  document.querySelectorAll('.symbol-row').forEach(row => {
-    row.addEventListener('click', () => {
-      symbolInput.value = row.dataset.symbol;
-      closeModal();
+    document.querySelectorAll('.symbol-row').forEach(row => {
+        row.addEventListener('click', () => {
+            symbolInput.value = row.dataset.symbol;
+            closeModal();
+        });
     });
-  });
 }
 
 function attachGroupToggle() {
-  document.querySelectorAll('.group-header').forEach(header => {
-    header.addEventListener('click', () => {
-      const content = header.nextElementSibling;
-      const toggle = header.querySelector('.group-toggle');
-      
-      if (content.style.display === 'none') {
-        content.style.display = 'flex';
-        toggle.textContent = '▼';
-      } else {
-        content.style.display = 'none';
-        toggle.textContent = '▶';
-      }
+    document.querySelectorAll('.group-header').forEach(header => {
+        header.addEventListener('click', () => {
+            const content = header.nextElementSibling;
+            const toggle = header.querySelector('.group-toggle');
+
+            if (content.style.display === 'none') {
+                content.style.display = 'flex';
+                toggle.textContent = '▼';
+            } else {
+                content.style.display = 'none';
+                toggle.textContent = '▶';
+            }
+        });
     });
-  });
 }
 
 // Live-Suche
 searchInput.addEventListener('input', (e) => {
-  const query = e.target.value.toLowerCase();
-  
-  if (!query) {
-    renderView();
-    return;
-  }
+    const query = e.target.value.toLowerCase();
 
-  // Suche in Flat-Liste
-  const filtered = symbolData.flat.filter(s =>
-    s.symbol.toLowerCase().includes(query) ||
-    s.name.toLowerCase().includes(query)
-  );
-  
-  renderFlat(filtered);
+    if (!query) {
+        renderView();
+        return;
+    }
+
+    // Suche in Flat-Liste
+    const filtered = symbolData.flat.filter(s =>
+        s.symbol.toLowerCase().includes(query) ||
+        s.name.toLowerCase().includes(query)
+    );
+
+    renderFlat(filtered);
 });

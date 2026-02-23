@@ -92,7 +92,7 @@ def list_symbols():
     für das Frontend-Menü.
     """
     try:
-        return {"symbols": get_equity_symbols()}
+        return get_equity_symbols()
     except Exception as e:
         raise HTTPException(status_code=500, detail=str(e))
 
