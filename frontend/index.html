@@ -1,11 +1,13 @@
 <!DOCTYPE html>
 <html lang="de">
+
 <head>
   <meta charset="UTF-8">
   <title>QuantOS</title>
   <link rel="stylesheet" href="css/style.css">
   <script src="https://cdn.plot.ly/plotly-latest.min.js"></script>
 </head>
+
 <body>
 
   <nav id="sidebar">
@@ -75,8 +77,12 @@
             <div class="ctrl-section-label">DATEN</div>
             <div class="ctrl-row">
               <label>Symbol</label>
-              <input type="text" id="ctrl-symbol" value="EURUSD=X">
+              <div class="ctrl-row-inline">
+                <input type="text" id="ctrl-symbol" value="SPY">
+                <button id="btn-browse-symbols" title="Browse Symbols">🔍</button>
+              </div>
             </div>
+
             <div class="ctrl-row">
               <label>Timeframe</label>
               <select id="ctrl-interval">
@@ -134,11 +140,17 @@
     </div>
 
     <div id="page-markov" class="page">
-      <div class="coming-soon"><span>🔗</span><h2>Markov</h2><p>Coming soon</p></div>
+      <div class="coming-soon"><span>🔗</span>
+        <h2>Markov</h2>
+        <p>Coming soon</p>
+      </div>
     </div>
 
     <div id="page-optimizer" class="page">
-      <div class="coming-soon"><span>⚙️</span><h2>Optimizer</h2><p>Coming soon</p></div>
+      <div class="coming-soon"><span>⚙️</span>
+        <h2>Optimizer</h2>
+        <p>Coming soon</p>
+      </div>
     </div>
 
   </main>
@@ -149,5 +161,28 @@
   <script src="js/backtest.js"></script>
   <script src="js/app.js"></script>
 
+  <!-- Symbol Browser Modal -->
+  <div id="symbol-modal" class="modal">
+    <div class="modal-content">
+      <div class="modal-header">
+        <h3>📊 Symbol auswählen</h3>
+        <span class="modal-close">&times;</span>
+      </div>
+      <div class="modal-body">
+        <input type="text" id="symbol-search" placeholder="Suche Symbol oder Name...">
+        <div id="symbol-list"></div>
+      </div>
+    </div>
+  </div>
+
+  <script src="../node_modules/split.js/dist/split.js"></script>
+  <script src="js/api.js"></script>
+  <script src="js/symbols.js"></script>
+  <script src="js/home.js"></script>
+  <script src="js/backtest.js"></script>
+  <script src="js/app.js"></script>
+
+
 </body>
+
 </html>
