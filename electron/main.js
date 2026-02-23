@@ -29,6 +29,7 @@ function createWindow() {
   // 2 Sekunden warten bis FastAPI hochgefahren ist
   setTimeout(() => {
     mainWindow.loadFile('frontend/index.html')
+    mainWindow.webContents.openDevTools();
   }, 2000)
 }
 

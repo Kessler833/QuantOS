@@ -28,6 +28,7 @@ async function openModal() {
       const res = await fetch('http://localhost:8000/api/symbols');
       const data = await res.json();
       symbolData = data;
+      console.log('Received data:', symbolData); 
       renderView();
     } catch (err) {
       symbolList.innerHTML = '<p class="error">❌ Fehler beim Laden der Symbole</p>';
