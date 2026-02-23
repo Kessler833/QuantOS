@@ -578,3 +578,152 @@ body { display: flex; }
   border-color: #7aa2f7;
   background: #1e1e2e;
 }
+
+/* ── SORT BUTTON FIX ────────────────────────── */
+.sort-toggle {
+  background: #1a1a2e;
+  border: 1px solid #2a2a3e;
+  color: #cdd6f4;
+  padding: 6px 12px;
+  border-radius: 6px;  /* ← Runde Ecken */
+  cursor: pointer;
+  font-size: 12px;
+  font-weight: 500;
+  transition: all 0.2s ease;
+  white-space: nowrap;
+  display: flex;
+  align-items: center;
+  gap: 6px;
+}
+
+.sort-toggle::before {
+  content: 'Sort by: ';
+  color: #6c7086;  /* ← Sekundäre Farbe */
+  font-weight: 400;
+}
+
+.sort-toggle:hover {
+  border-color: #7aa2f7;
+  background: #1e1e2e;
+  transform: translateY(-1px);
+}
+
+.sort-toggle:active {
+  transform: translateY(0);
+}
+
+/* ── CLOSE BUTTON FIX ───────────────────────── */
+.modal-close {
+  background: transparent;
+  border: none;
+  color: #6c7086;
+  font-size: 24px;
+  cursor: pointer;
+  padding: 0;
+  width: 32px;
+  height: 32px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  border-radius: 6px;  /* ← Runde Ecken */
+  transition: all 0.2s ease;
+  line-height: 1;
+  margin-left: auto;  /* ← Pushed nach rechts */
+}
+
+.modal-close:hover {
+  background: #1a1a2e;
+  color: #ef5350;
+}
+
+/* ── SCROLLBAR FIX ──────────────────────────── */
+#symbol-list::-webkit-scrollbar {
+  width: 10px;
+}
+
+#symbol-list::-webkit-scrollbar-track {
+  background: #0d0d1e;  /* ← Dunkler Track */
+  border-radius: 5px;
+}
+
+#symbol-list::-webkit-scrollbar-thumb {
+  background: #2a2a3e;  /* ← Border-Farbe */
+  border-radius: 5px;
+  transition: background 0.2s ease;
+}
+
+#symbol-list::-webkit-scrollbar-thumb:hover {
+  background: #7aa2f7;  /* ← Akzentfarbe beim Hover */
+}
+
+/* ── LOADING SPINNER ────────────────────────── */
+.loading-spinner {
+  text-align: center;
+  padding: 12px;
+  color: #6c7086;
+  font-size: 12px;
+  font-style: italic;
+}
+
+/* ── GROUP SYMBOLS CONTAINER ────────────────── */
+.group-symbols {
+  display: flex;
+  flex-direction: column;
+  gap: 1px;
+}
+
+.scroll-trigger {
+  display: flex;
+  justify-content: center;
+  padding: 8px;
+}
+
+/* ── MODAL HEADER SPACING FIX ───────────────── */
+.modal-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 16px 20px;
+  border-bottom: 1px solid #1e1e30;
+  gap: 8px;  /* ← Abstand zwischen allen Elementen */
+}
+
+/* ── SYMBOL LIST PADDING FIX ────────────────── */
+#symbol-list {
+  flex: 1;
+  overflow-y: auto;
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  min-height: 0;
+  padding-right: 8px;  /* ← Abstand zwischen Scrollbar und Tabs */
+}
+
+/* Optional: Scrollbar etwas weiter rechts positionieren */
+#symbol-list::-webkit-scrollbar {
+  width: 10px;
+  margin-left: 4px;  /* ← Extra Spacing */
+}
+
+.modal-close {
+  background: transparent;
+  border: none;
+  color: #6c7086;
+  font-size: 24px;
+  cursor: pointer;
+  padding: 0;
+  width: 32px;
+  height: 32px;
+  display: flex;
+  align-items: center;      /* ← Vertikal zentrieren */
+  justify-content: center;  /* ← Horizontal zentrieren */
+  border-radius: 6px;
+  transition: all 0.2s ease;
+  line-height: 1;           /* ← Wichtig! Verhindert Extra-Spacing */
+  font-family: Arial, sans-serif;  /* ← Manche Fonts haben weird × Alignment */
+}
+
+.modal-close:hover {
+  background: #1a1a2e;
+  color: #ef5350;
+}

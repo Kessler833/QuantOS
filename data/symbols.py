@@ -61,7 +61,7 @@ def get_equity_symbols() -> Dict[str, Any]:
         "NEE": "Utilities", "DUK": "Utilities", "SO": "Utilities", "D": "Utilities",
     }
     
-    # Top-100 Most Traded (für Popularity-Sortierung)
+    # Top-100 Most Traded
     top_traded: Set[str] = {
         "AAPL", "MSFT", "NVDA", "TSLA", "AMZN", "META", "GOOGL", "GOOG", "SPY", "QQQ",
         "AMD", "NFLX", "BABA", "INTC", "DIS", "PYPL", "MRNA", "NIO", "PLTR", "SOFI",
@@ -72,51 +72,101 @@ def get_equity_symbols() -> Dict[str, Any]:
         "AAPL", "MSFT", "GOOGL", "GOOG", "AMZN", "NVDA", "META", "TSLA", "BRK.B"
     }
     
+    # Index-Tracking ETFs (für "Indices" Kategorie)
+    index_etfs: Set[str] = {
+        "SPY", "QQQ", "IWM", "DIA", "VOO", "VTI", "IVV", "MDY", "IJH", "IJR",
+        "RSP", "SPLG", "SPYG", "SPYV", "VUG", "VTV", "QQQM", "ONEQ"
+    }
+    
+    # Sector ETFs
+    sector_etfs: Set[str] = {
+        "XLF", "XLE", "XLK", "XLV", "XLI", "XLP", "XLY", "XLU", "XLB", "XLRE",
+        "VGT", "VHT", "VFH", "VDE", "VIS", "VDC", "VAW", "VNQ"
+    }
+    
+    # Bond ETFs
+    bond_etfs: Set[str] = {
+        "AGG", "BND", "VCIT", "VCSH", "VGIT", "VGLT", "LQD", "HYG", "JNK", "TLT",
+        "IEF", "SHY", "TIP", "VTIP", "MUB", "BNDX"
+    }
+    
+    # Commodity ETFs
+    commodity_etfs: Set[str] = {
+        "GLD", "SLV", "USO", "UNG", "DBA", "DBC", "PDBC", "IAU", "GLTR", "COMT"
+    }
+    
+    # International/Emerging Market ETFs
+    international_etfs: Set[str] = {
+        "VEA", "IEFA", "EFA", "VWO", "IEMG", "VXUS", "EEM", "IXUS", "ACWI", "VEU",
+        "SCHF", "SPDW", "IDEV", "EWJ", "EWZ", "FXI", "MCHI"
+    }
+    
+    # Crypto-Related (Crypto Mining, Crypto ETFs)
+    crypto_related: Set[str] = {
+        "MARA", "RIOT", "COIN", "MSTR", "CLSK", "CIFR", "HUT", "BITF", "BITO", "BITI"
+    }
+    
     symbols: List[Dict[str, Any]] = []
     
     for a in assets:
         if not a.tradable:
             continue
         
-        # ETF-Erkennung
-        is_etf = (
-            "ETF" in a.name.upper() or 
-            "FUND" in a.name.upper() or
-            (hasattr(a.exchange, 'value') and a.exchange.value in ["ARCA", "BATS"])
-        )
+        symbol = a.symbol
+        name_upper = a.name.upper()
+        
+        # Asset Type Klassifizierung
+        asset_type: str
+        
+        if symbol in crypto_related or "BITCOIN" in name_upper or "CRYPTO" in name_upper:
+            asset_type = "Crypto & Blockchain"
+        elif symbol in index_etfs:
+            asset_type = "Index ETF"
+        elif symbol in sector_etfs:
+            asset_type = "Sector ETF"
+        elif symbol in bond_etfs:
+            asset_type = "Bond ETF"
+        elif symbol in commodity_etfs:
+            asset_type = "Commodity ETF"
+        elif symbol in international_etfs:
+            asset_type = "International ETF"
+        elif "ETF" in name_upper or "FUND" in name_upper or (hasattr(a.exchange, 'value') and a.exchange.value in ["ARCA", "BATS"]):
+            asset_type = "Other ETF"
+        else:
+            asset_type = "Stock"
         
         # Market Cap Kategorie
         market_cap: str
-        if a.symbol in mega_cap_symbols:
+        if symbol in mega_cap_symbols:
             market_cap = "Mega Cap"
-        elif a.symbol in top_traded:
+        elif symbol in top_traded:
             market_cap = "Large Cap"
-        elif len(a.symbol) <= 4:
+        elif len(symbol) <= 4:
             market_cap = "Mid Cap"
         else:
             market_cap = "Small Cap"
         
         item: Dict[str, Any] = {
-            "symbol": a.symbol,
+            "symbol": symbol,
             "name": a.name,
             "exchange": a.exchange.value if hasattr(a.exchange, 'value') else str(a.exchange),
-            "type": "ETF" if is_etf else "Stock",
-            "sector": sector_map.get(a.symbol, "Other"),
+            "type": asset_type,
+            "sector": sector_map.get(symbol, "Other"),
             "market_cap": market_cap,
-            "is_popular": a.symbol in top_traded,
+            "is_popular": symbol in top_traded,
         }
         
         symbols.append(item)
     
-    # Alphabetisch sortieren (Standard)
+    # Alphabetisch sortieren
     symbols.sort(key=lambda x: x["symbol"])
     
     return {
         "symbols": symbols,
         "metadata": {
             "total": len(symbols),
-            "types": list(set(s["type"] for s in symbols)),
-            "sectors": list(set(s["sector"] for s in symbols)),
+            "types": sorted(list(set(s["type"] for s in symbols))),
+            "sectors": sorted(list(set(s["sector"] for s in symbols))),
             "market_caps": ["Mega Cap", "Large Cap", "Mid Cap", "Small Cap"]
         }
     }

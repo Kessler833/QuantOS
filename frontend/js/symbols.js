@@ -1,7 +1,9 @@
 // frontend/js/symbols.js
 let symbolData = null;
 let sortMode = 'alphabetical';
-const MAX_INITIAL_ITEMS = 100; // Pro Gruppe
+const BATCH_SIZE = 50;
+let groupOffsets = {};
+let observers = []; // IntersectionObserver speichern
 
 const modal = document.getElementById('symbol-modal');
 const btnBrowse = document.getElementById('btn-browse-symbols');
@@ -16,51 +18,51 @@ window.addEventListener('click', (e) => {
   if (e.target === modal) closeModal();
 });
 
+// ── CACHE LADEN ──────────────────────────────────────────
+async function preloadSymbols() {
+  if (symbolData) return;
+  try {
+    const res = await fetch('http://localhost:8000/api/symbols');
+    const data = await res.json();
+
+    if (Array.isArray(data)) {
+      symbolData = data;
+    } else if (data.symbols && Array.isArray(data.symbols)) {
+      symbolData = data.symbols;
+    } else {
+      throw new Error('Invalid data format');
+    }
+    console.log('✅ Symbols cached:', symbolData.length);
+  } catch (err) {
+    console.error('❌ Cache load failed:', err);
+  }
+}
+
+preloadSymbols();
+
+// ── MODAL ────────────────────────────────────────────────
 async function openModal() {
   modal.style.display = 'flex';
   searchInput.value = '';
   searchInput.focus();
 
   if (!symbolData) {
-    symbolList.innerHTML = '<p class="loading">Lade Symbole...</p>';
-    try {
-      const res = await fetch('http://localhost:8000/api/symbols');
-      const data = await res.json();
-      
-      // DEBUG: Was gibt die API zurück?
-      console.log('Raw API response:', data);
-      console.log('Type:', typeof data);
-      console.log('Keys:', Object.keys(data));
-      
-      // Fix: Extrahiere symbols Array
-      if (Array.isArray(data)) {
-        symbolData = data;
-      } else if (data.symbols && Array.isArray(data.symbols)) {
-        symbolData = data.symbols;
-      } else {
-        console.error('Data structure:', data);
-        throw new Error('Invalid data format');
-      }
-      
-      console.log('Loaded symbols:', symbolData.length);
-      renderView();
-    } catch (err) {
-      symbolList.innerHTML = '<p class="error">❌ Fehler beim Laden der Symbole</p>';
-      console.error(err);
-    }
-  } else {
-    renderView();
+    symbolList.innerHTML = '<p class="loading">⏳ Lade Symbole...</p>';
+    await preloadSymbols();
   }
+
+  renderView();
 }
-
-
 
 function closeModal() {
   modal.style.display = 'none';
+  // Observer cleanup
+  observers.forEach(o => o.disconnect());
+  observers = [];
 }
 
+// ── VIEW ─────────────────────────────────────────────────
 function renderView() {
-  // Sortier-Button erstellen
   let sortBtn = document.getElementById('sort-toggle');
   if (!sortBtn) {
     sortBtn = document.createElement('button');
@@ -69,15 +71,17 @@ function renderView() {
     document.querySelector('.modal-header').appendChild(sortBtn);
     sortBtn.addEventListener('click', cycleSortMode);
   }
-  
+
   updateSortButton(sortBtn);
+  groupOffsets = {};
+  observers.forEach(o => o.disconnect());
+  observers = [];
   renderGrouped();
 }
 
 function cycleSortMode() {
   const modes = ['alphabetical', 'type', 'market_cap', 'sector', 'popularity'];
-  const currentIndex = modes.indexOf(sortMode);
-  sortMode = modes[(currentIndex + 1) % modes.length];
+  sortMode = modes[(modes.indexOf(sortMode) + 1) % modes.length];
   renderView();
 }
 
@@ -92,76 +96,22 @@ function updateSortButton(btn) {
   btn.innerHTML = labels[sortMode];
 }
 
-function renderGrouped() {
-  let groups = {};
-  
+// ── GRUPPIERUNG ──────────────────────────────────────────
+function getGroups() {
   switch (sortMode) {
-    case 'type':
-      groups = groupBy(symbolData, 'type');
-      break;
-    case 'sector':
-      groups = groupBy(symbolData, 'sector');
-      break;
-    case 'market_cap':
-      groups = groupByMarketCap(symbolData);
-      break;
-    case 'popularity':
-      groups = groupByPopularity(symbolData);
-      break;
-    default: // alphabetical
-      // Bei alphabetisch: Nur erste 500 anzeigen
-      groups = { "All Symbols (showing first 500)": symbolData.slice(0, 500) };
+    case 'type':       return groupBy(symbolData, 'type');
+    case 'sector':     return groupBy(symbolData, 'sector');
+    case 'market_cap': return groupByMarketCap(symbolData);
+    case 'popularity': return groupByPopularity(symbolData);
+    default:           return { "All Symbols": symbolData };
   }
-  
-  const icons = {
-    "Stock": "📈", "ETF": "📊",
-    "Technology": "💻", "Healthcare": "🏥", "Finance": "💳",
-    "Consumer": "🛒", "Energy": "⚡", "Industrial": "🏭", "Utilities": "💡",
-    "Mega Cap": "🏢", "Large Cap": "🏬", "Mid Cap": "🏪", "Small Cap": "🔹",
-    "Most Popular": "🔥", "Other": "📁"
-  };
-  
-  symbolList.innerHTML = Object.entries(groups).map(([groupName, symbols]) => {
-    if (symbols.length === 0) return '';
-    
-    // Limit: Max 100 Symbole pro Gruppe anzeigen
-    const displaySymbols = symbols.slice(0, MAX_INITIAL_ITEMS);
-    const hasMore = symbols.length > MAX_INITIAL_ITEMS;
-    
-    const icon = icons[groupName] || "📁";
-    return `
-      <div class="symbol-group">
-        <div class="group-header" data-group="${groupName}">
-          <span class="group-icon">${icon}</span>
-          <span class="group-title">${groupName}</span>
-          <span class="group-count">${symbols.length}</span>
-          <span class="group-toggle">▼</span>
-        </div>
-        <div class="group-content" style="display: none;">
-          ${displaySymbols.map(s => `
-            <div class="symbol-row" data-symbol="${s.symbol}">
-              <div class="symbol-info">
-                <span class="symbol-ticker">${s.symbol}</span>
-                <span class="symbol-name">${s.name}</span>
-              </div>
-              <span class="symbol-exchange">${s.exchange}</span>
-            </div>
-          `).join('')}
-          ${hasMore ? `<p class="load-more">... ${symbols.length - MAX_INITIAL_ITEMS} weitere (nutze Suche)</p>` : ''}
-        </div>
-      </div>
-    `;
-  }).join('');
-  
-  attachRowHandlers();
-  attachGroupToggle();
 }
 
 function groupBy(symbols, key) {
-  return symbols.reduce((acc, symbol) => {
-    const group = symbol[key] || 'Other';
-    if (!acc[group]) acc[group] = [];
-    acc[group].push(symbol);
+  return symbols.reduce((acc, s) => {
+    const g = s[key] || 'Other';
+    if (!acc[g]) acc[g] = [];
+    acc[g].push(s);
     return acc;
   }, {});
 }
@@ -169,22 +119,149 @@ function groupBy(symbols, key) {
 function groupByMarketCap(symbols) {
   const order = ["Mega Cap", "Large Cap", "Mid Cap", "Small Cap"];
   const grouped = groupBy(symbols, 'market_cap');
-  return Object.fromEntries(
-    order.filter(cap => grouped[cap]).map(cap => [cap, grouped[cap]])
-  );
+  return Object.fromEntries(order.filter(c => grouped[c]).map(c => [c, grouped[c]]));
 }
 
 function groupByPopularity(symbols) {
-  const popular = symbols.filter(s => s.is_popular).sort((a, b) => a.symbol.localeCompare(b.symbol));
-  const others = symbols.filter(s => !s.is_popular).sort((a, b) => a.symbol.localeCompare(b.symbol));
   return {
-    "Most Popular": popular,
-    "Other": others
+    "Most Popular": symbols.filter(s => s.is_popular).sort((a, b) => a.symbol.localeCompare(b.symbol)),
+    "Other":        symbols.filter(s => !s.is_popular).sort((a, b) => a.symbol.localeCompare(b.symbol))
   };
 }
 
+// ── RENDER MIT AUTO INFINITE SCROLL ──────────────────────
+function renderGrouped() {
+  const groups = getGroups();
+
+  const icons = {
+  // Asset Types
+  "Stock": "📈",
+  "Index ETF": "📊",
+  "Sector ETF": "🎯",
+  "Bond ETF": "💵",
+  "Commodity ETF": "🥇",
+  "International ETF": "🌍",
+  "Crypto & Blockchain": "₿",
+  "Other ETF": "📦",
+  
+  // Sectors
+  "Technology": "💻",
+  "Healthcare": "🏥",
+  "Finance": "💳",
+  "Consumer": "🛒",
+  "Energy": "⚡",
+  "Industrial": "🏭",
+  "Utilities": "💡",
+  
+  // Market Cap
+  "Mega Cap": "🏢",
+  "Large Cap": "🏬",
+  "Mid Cap": "🏪",
+  "Small Cap": "🔹",
+  
+  // Other
+  "Most Popular": "🔥",
+  "All Symbols": "🔤",
+  "Other": "📁"
+};
+
+
+  symbolList.innerHTML = Object.entries(groups).map(([groupName, symbols]) => {
+    if (symbols.length === 0) return '';
+
+    groupOffsets[groupName] = BATCH_SIZE;
+    const initial = symbols.slice(0, BATCH_SIZE);
+    const hasMore = symbols.length > BATCH_SIZE;
+    const icon = icons[groupName] || "📁";
+
+    return `
+      <div class="symbol-group" data-group="${groupName}">
+        <div class="group-header">
+          <span class="group-icon">${icon}</span>
+          <span class="group-title">${groupName}</span>
+          <span class="group-count">${symbols.length}</span>
+          <span class="group-toggle">▼</span>
+        </div>
+        <div class="group-content" style="display: none;">
+          <div class="group-symbols" data-group="${groupName}">
+            ${renderRows(initial)}
+          </div>
+          ${hasMore ? `
+            <div class="scroll-trigger" data-group="${groupName}">
+              <div class="loading-spinner">⏳ Lädt mehr...</div>
+            </div>
+          ` : ''}
+        </div>
+      </div>
+    `;
+  }).join('');
+
+  attachRowHandlers();
+  attachGroupToggle();
+  attachScrollObservers(groups);
+}
+
+function renderRows(symbols) {
+  return symbols.map(s => `
+    <div class="symbol-row" data-symbol="${s.symbol}">
+      <div class="symbol-info">
+        <span class="symbol-ticker">${s.symbol}</span>
+        <span class="symbol-name">${s.name}</span>
+      </div>
+      <span class="symbol-exchange">${s.exchange}</span>
+    </div>
+  `).join('');
+}
+
+// ── INTERSECTION OBSERVER FÜR AUTO-SCROLL ────────────────
+function attachScrollObservers(groups) {
+  document.querySelectorAll('.scroll-trigger').forEach(trigger => {
+    const groupName = trigger.dataset.group;
+    const allSymbols = groups[groupName];
+    const container = trigger.previousElementSibling; // .group-symbols
+
+    const observer = new IntersectionObserver((entries) => {
+      entries.forEach(entry => {
+        if (!entry.isIntersecting) return;
+
+        const offset = groupOffsets[groupName];
+        if (offset >= allSymbols.length) {
+          trigger.remove();
+          observer.disconnect();
+          return;
+        }
+
+        // Nächsten Batch laden
+        const nextBatch = allSymbols.slice(offset, offset + BATCH_SIZE);
+        groupOffsets[groupName] = offset + BATCH_SIZE;
+
+        container.insertAdjacentHTML('beforeend', renderRows(nextBatch));
+        attachRowHandlers();
+
+        // Fertig? Trigger entfernen
+        if (groupOffsets[groupName] >= allSymbols.length) {
+          trigger.remove();
+          observer.disconnect();
+        }
+      });
+    }, {
+      root: symbolList,
+      rootMargin: '100px', // Lädt schon 100px vor Ende
+      threshold: 0.1
+    });
+
+    observer.observe(trigger);
+    observers.push(observer);
+  });
+}
+
+// ── HANDLERS ─────────────────────────────────────────────
 function attachRowHandlers() {
   document.querySelectorAll('.symbol-row').forEach(row => {
+    // Nur neue Rows, die noch keinen Listener haben
+    if (row.dataset.hasListener) return;
+    row.dataset.hasListener = 'true';
+    
     row.addEventListener('click', () => {
       symbolInput.value = row.dataset.symbol;
       closeModal();
@@ -197,48 +274,39 @@ function attachGroupToggle() {
     header.addEventListener('click', () => {
       const content = header.nextElementSibling;
       const toggle = header.querySelector('.group-toggle');
-      
-      if (content.style.display === 'none') {
-        content.style.display = 'flex';
-        toggle.textContent = '▼';
-      } else {
-        content.style.display = 'none';
-        toggle.textContent = '▶';
-      }
+      content.style.display = content.style.display === 'none' ? 'flex' : 'none';
+      toggle.textContent = content.style.display === 'none' ? '▶' : '▼';
     });
   });
 }
 
-// Live-Suche (WICHTIG für Performance!)
+// ── LIVE-SUCHE ───────────────────────────────────────────
 searchInput.addEventListener('input', (e) => {
   const query = e.target.value.toLowerCase();
-  
+
   if (!query) {
     renderView();
     return;
   }
-  
-  // Nur erste 100 Treffer anzeigen
+
   const filtered = symbolData
-    .filter(s => 
+    .filter(s =>
       s.symbol.toLowerCase().includes(query) ||
       s.name.toLowerCase().includes(query)
     )
     .slice(0, 100);
-  
-  symbolList.innerHTML = filtered.map(s => `
-    <div class="symbol-row" data-symbol="${s.symbol}">
-      <div class="symbol-info">
-        <span class="symbol-ticker">${s.symbol}</span>
-        <span class="symbol-name">${s.name}</span>
-      </div>
-      <span class="symbol-exchange">${s.exchange}</span>
-    </div>
-  `).join('');
-  
-  if (filtered.length === 0) {
-    symbolList.innerHTML = '<p class="no-results">Keine Symbole gefunden</p>';
-  }
-  
+
+  symbolList.innerHTML = filtered.length
+    ? filtered.map(s => `
+        <div class="symbol-row" data-symbol="${s.symbol}">
+          <div class="symbol-info">
+            <span class="symbol-ticker">${s.symbol}</span>
+            <span class="symbol-name">${s.name}</span>
+          </div>
+          <span class="symbol-exchange">${s.exchange}</span>
+        </div>
+      `).join('')
+    : '<p class="no-results">Keine Symbole gefunden</p>';
+
   attachRowHandlers();
 });
