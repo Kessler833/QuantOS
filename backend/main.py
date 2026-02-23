@@ -13,7 +13,8 @@ from alpaca.data.timeframe import TimeFrame, TimeFrameUnit
 from alpaca.data.enums import Adjustment, DataFeed
 
 from data import config
-from backend.api.symbols import get_equity_symbols
+from data.symbols import get_equity_symbols
+
 
 app = FastAPI()
 
