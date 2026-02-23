@@ -13,7 +13,7 @@ from alpaca.data.timeframe import TimeFrame, TimeFrameUnit
 from alpaca.data.enums import Adjustment, DataFeed
 
 from data import config
-from data.symbols import get_equity_symbols
+from data.symbols import get_all_symbols
 
 
 app = FastAPI()
@@ -89,11 +89,10 @@ def get_modules():
 @app.get("/api/symbols")
 def list_symbols():
     """
-    Liefert alle aktiven, handelbaren US-Equity-Symbole (Stocks + ETFs)
-    für das Frontend-Menü.
+    Liefert alle verfügbaren Symbole (Equities + Crypto + Pairs) für das Frontend.
     """
     try:
-        return get_equity_symbols()
+        return get_all_symbols()
     except Exception as e:
         raise HTTPException(status_code=500, detail=str(e))
 

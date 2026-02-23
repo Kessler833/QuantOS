@@ -3,7 +3,7 @@ let symbolData = null;
 let sortMode = 'alphabetical';
 const BATCH_SIZE = 50;
 let groupOffsets = {};
-let observers = []; // IntersectionObserver speichern
+let observers = [];
 
 const modal = document.getElementById('symbol-modal');
 const btnBrowse = document.getElementById('btn-browse-symbols');
@@ -56,7 +56,6 @@ async function openModal() {
 
 function closeModal() {
   modal.style.display = 'none';
-  // Observer cleanup
   observers.forEach(o => o.disconnect());
   observers = [];
 }
@@ -88,25 +87,46 @@ function cycleSortMode() {
 function updateSortButton(btn) {
   const labels = {
     'alphabetical': '🔤 A-Z',
-    'type': '📊 Asset Type',
-    'market_cap': '💰 Market Cap',
-    'sector': '🏭 Sector',
-    'popularity': '🔥 Popular'
+    'type':         '📊 Asset Type',
+    'market_cap':   '💰 Market Cap',
+    'sector':       '🏭 Sector',
+    'popularity':   '🔥 Popular'
   };
   btn.innerHTML = labels[sortMode];
 }
 
-// ── GRUPPIERUNG ──────────────────────────────────────────
-function getGroups() {
-  switch (sortMode) {
-    case 'type':       return groupBy(symbolData, 'type');
-    case 'sector':     return groupBy(symbolData, 'sector');
-    case 'market_cap': return groupByMarketCap(symbolData);
-    case 'popularity': return groupByPopularity(symbolData);
-    default:           return { "All Symbols": symbolData };
-  }
-}
+// ── ICONS ────────────────────────────────────────────────
+const GROUP_ICONS = {
+  "Crypto Pairs":        "₿",
+  "Index ETF":           "📊",
+  "Sector ETF":          "🎯",
+  "Bond ETF":            "💵",
+  "Commodity ETF":       "🥇",
+  "International ETF":   "🌍",
+  "Crypto & Blockchain": "🔗",
+  "Other ETF":           "📦",
+  "Stock":               "📈",
 
+  "Technology":  "💻",
+  "Healthcare":  "🏥",
+  "Finance":     "💳",
+  "Consumer":    "🛒",
+  "Energy":      "⚡",
+  "Industrial":  "🏭",
+  "Utilities":   "💡",
+  "Real Estate": "🏠",
+  "Materials":   "⚗️",
+  "Other":       "📁",
+
+  "Mega Cap":  "🏢",
+  "Large Cap": "🏬",
+  "Mid Cap":   "🏪",
+  "Small Cap": "🔹",
+
+  "Most Popular": "🔥",
+};
+
+// ── GRUPPIERUNG ──────────────────────────────────────────
 function groupBy(symbols, key) {
   return symbols.reduce((acc, s) => {
     const g = s[key] || 'Other';
@@ -116,63 +136,108 @@ function groupBy(symbols, key) {
   }, {});
 }
 
+function groupByType(symbols) {
+  const order = [
+    "Crypto Pairs",
+    "Index ETF",
+    "Sector ETF",
+    "Bond ETF",
+    "Commodity ETF",
+    "International ETF",
+    "Crypto & Blockchain",
+    "Other ETF",
+    "Stock"
+  ];
+
+  const raw = symbols.reduce((acc, s) => {
+    const type = s.symbol.includes('/') ? 'Crypto Pairs' : (s.type || 'Stock');
+    if (!acc[type]) acc[type] = [];
+    acc[type].push(s);
+    return acc;
+  }, {});
+
+  return Object.fromEntries(order.filter(t => raw[t]).map(t => [t, raw[t]]));
+}
+
 function groupByMarketCap(symbols) {
   const order = ["Mega Cap", "Large Cap", "Mid Cap", "Small Cap"];
-  const grouped = groupBy(symbols, 'market_cap');
-  return Object.fromEntries(order.filter(c => grouped[c]).map(c => [c, grouped[c]]));
+  const stocks = symbols.filter(s => !s.symbol.includes('/') && s.type === 'Stock');
+  const etfs = symbols.filter(s => s.type && s.type.includes('ETF'));
+  const crypto = symbols.filter(s => s.symbol.includes('/'));
+
+  const grouped = stocks.reduce((acc, s) => {
+    const g = s.market_cap || 'Small Cap';
+    if (!acc[g]) acc[g] = [];
+    acc[g].push(s);
+    return acc;
+  }, {});
+
+  const result = Object.fromEntries(order.filter(c => grouped[c]).map(c => [c, grouped[c]]));
+  if (etfs.length > 0) result["ETFs"] = etfs;
+  if (crypto.length > 0) result["Crypto Pairs"] = crypto;
+  return result;
 }
 
-function groupByPopularity(symbols) {
-  return {
-    "Most Popular": symbols.filter(s => s.is_popular).sort((a, b) => a.symbol.localeCompare(b.symbol)),
-    "Other":        symbols.filter(s => !s.is_popular).sort((a, b) => a.symbol.localeCompare(b.symbol))
-  };
+function groupBySector(symbols) {
+  const order = [
+    "Technology", "Healthcare", "Finance", "Consumer",
+    "Energy", "Industrial", "Utilities", "Real Estate", "Materials", "Other"
+  ];
+
+  const stocks = symbols.filter(s => !s.symbol.includes('/') && s.type === 'Stock');
+  const etfs = symbols.filter(s => s.type && s.type.includes('ETF'));
+  const crypto = symbols.filter(s => s.symbol.includes('/'));
+
+  const grouped = stocks.reduce((acc, s) => {
+    const g = s.sector || 'Other';
+    if (!acc[g]) acc[g] = [];
+    acc[g].push(s);
+    return acc;
+  }, {});
+
+  const result = Object.fromEntries(order.filter(sec => grouped[sec]).map(sec => [sec, grouped[sec]]));
+  if (etfs.length > 0) result["ETFs"] = etfs;
+  if (crypto.length > 0) result["Crypto Pairs"] = crypto;
+  return result;
 }
 
-// ── RENDER MIT AUTO INFINITE SCROLL ──────────────────────
+// ── RENDER ────────────────────────────────────────────────
 function renderGrouped() {
-  const groups = getGroups();
+  // 1) Alphabetisch: flache Liste A–Z
+  if (sortMode === 'alphabetical') {
+    const list = [...symbolData].sort((a, b) =>
+      a.symbol.localeCompare(b.symbol)
+    );
+    renderFlatWithInfiniteScroll(list, 'alphabetical');
+    return;
+  }
 
-  const icons = {
-  // Asset Types
-  "Stock": "📈",
-  "Index ETF": "📊",
-  "Sector ETF": "🎯",
-  "Bond ETF": "💵",
-  "Commodity ETF": "🥇",
-  "International ETF": "🌍",
-  "Crypto & Blockchain": "₿",
-  "Other ETF": "📦",
-  
-  // Sectors
-  "Technology": "💻",
-  "Healthcare": "🏥",
-  "Finance": "💳",
-  "Consumer": "🛒",
-  "Energy": "⚡",
-  "Industrial": "🏭",
-  "Utilities": "💡",
-  
-  // Market Cap
-  "Mega Cap": "🏢",
-  "Large Cap": "🏬",
-  "Mid Cap": "🏪",
-  "Small Cap": "🔹",
-  
-  // Other
-  "Most Popular": "🔥",
-  "All Symbols": "🔤",
-  "Other": "📁"
-};
+  // 2) Popular: flache Liste, nur "is_popular", absteigend, max 1000
+  if (sortMode === 'popularity') {
+    const popular = symbolData
+      .filter(s => s.is_popular)
+      .sort((a, b) => a.symbol.localeCompare(b.symbol))
+      .slice(0, 1000);
 
+    renderFlatWithInfiniteScroll(popular, 'popular');
+    return;
+  }
+
+  // 3) Alle anderen: gruppiert
+  let groups = {};
+  switch (sortMode) {
+    case 'type':       groups = groupByType(symbolData);      break;
+    case 'market_cap': groups = groupByMarketCap(symbolData); break;
+    case 'sector':     groups = groupBySector(symbolData);    break;
+  }
 
   symbolList.innerHTML = Object.entries(groups).map(([groupName, symbols]) => {
-    if (symbols.length === 0) return '';
+    if (!symbols || symbols.length === 0) return '';
 
     groupOffsets[groupName] = BATCH_SIZE;
     const initial = symbols.slice(0, BATCH_SIZE);
     const hasMore = symbols.length > BATCH_SIZE;
-    const icon = icons[groupName] || "📁";
+    const icon = GROUP_ICONS[groupName] || "📁";
 
     return `
       <div class="symbol-group" data-group="${groupName}">
@@ -201,6 +266,27 @@ function renderGrouped() {
   attachScrollObservers(groups);
 }
 
+// flache Liste mit Auto-Infinite-Scroll (für Alphabetical & Popular)
+function renderFlatWithInfiniteScroll(list, groupName) {
+  groupOffsets[groupName] = BATCH_SIZE;
+  const initial = list.slice(0, BATCH_SIZE);
+  const hasMore = list.length > BATCH_SIZE;
+
+  symbolList.innerHTML = `
+    <div class="group-symbols" data-group="${groupName}">
+      ${renderRows(initial)}
+    </div>
+    ${hasMore ? `
+      <div class="scroll-trigger" data-group="${groupName}">
+        <div class="loading-spinner">⏳ Lädt mehr...</div>
+      </div>
+    ` : ''}
+  `;
+
+  attachRowHandlers();
+  attachScrollObservers({ [groupName]: list });
+}
+
 function renderRows(symbols) {
   return symbols.map(s => `
     <div class="symbol-row" data-symbol="${s.symbol}">
@@ -213,12 +299,14 @@ function renderRows(symbols) {
   `).join('');
 }
 
-// ── INTERSECTION OBSERVER FÜR AUTO-SCROLL ────────────────
+// ── INTERSECTION OBSERVER ─────────────────────────────────
 function attachScrollObservers(groups) {
   document.querySelectorAll('.scroll-trigger').forEach(trigger => {
     const groupName = trigger.dataset.group;
     const allSymbols = groups[groupName];
-    const container = trigger.previousElementSibling; // .group-symbols
+    if (!allSymbols) return;
+
+    const container = trigger.previousElementSibling;
 
     const observer = new IntersectionObserver((entries) => {
       entries.forEach(entry => {
@@ -231,14 +319,12 @@ function attachScrollObservers(groups) {
           return;
         }
 
-        // Nächsten Batch laden
         const nextBatch = allSymbols.slice(offset, offset + BATCH_SIZE);
         groupOffsets[groupName] = offset + BATCH_SIZE;
 
         container.insertAdjacentHTML('beforeend', renderRows(nextBatch));
         attachRowHandlers();
 
-        // Fertig? Trigger entfernen
         if (groupOffsets[groupName] >= allSymbols.length) {
           trigger.remove();
           observer.disconnect();
@@ -246,7 +332,7 @@ function attachScrollObservers(groups) {
       });
     }, {
       root: symbolList,
-      rootMargin: '100px', // Lädt schon 100px vor Ende
+      rootMargin: '100px',
       threshold: 0.1
     });
 
@@ -258,10 +344,8 @@ function attachScrollObservers(groups) {
 // ── HANDLERS ─────────────────────────────────────────────
 function attachRowHandlers() {
   document.querySelectorAll('.symbol-row').forEach(row => {
-    // Nur neue Rows, die noch keinen Listener haben
     if (row.dataset.hasListener) return;
     row.dataset.hasListener = 'true';
-    
     row.addEventListener('click', () => {
       symbolInput.value = row.dataset.symbol;
       closeModal();

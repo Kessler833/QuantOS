@@ -727,3 +727,15 @@ body { display: flex; }
   background: #1a1a2e;
   color: #ef5350;
 }
+
+.group-symbols {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;        /* ← Abstand zwischen den Rows */
+  padding: 6px 0;  /* ← Etwas Padding oben/unten */
+}
+
+/* Falls Rows direkt in #symbol-list liegen (Suche/Alphabetisch) */
+#symbol-list > .symbol-row {
+  margin-bottom: 6px;
+}
