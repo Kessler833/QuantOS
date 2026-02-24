@@ -10,6 +10,7 @@
     "electron-builder": "^25.0.0"
   },
   "dependencies": {
+    "lightweight-charts": "^5.1.0",
     "split.js": "^1.6.5"
   }
 }

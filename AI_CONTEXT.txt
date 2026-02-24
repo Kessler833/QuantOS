@@ -1,82 +1,172 @@
 ============================================================
-  StrategyOS - Trading Platform
+  QuantOS – AI Crawler Context
+  Projekttyp: Desktop Quant-Trading-Terminal
+  Version:    1.0.0
 ============================================================
 
-INSTALLATION
-------------
-1. Python installieren
-   - Download: https://python.org/downloads
-   - Beim Setup "Add Python to PATH" aktivieren
 
-2. Bibliotheken installieren
-   Terminal oeffnen und eingeben:
-   pip install streamlit plotly yfinance pandas numpy
+ÜBERSICHT
+---------
+QuantOS ist ein lokal laufendes Quant-Trading-Terminal, gebaut
+als Electron-Desktop-App. Das Backend ist eine FastAPI-Anwendung
+(Python), die Marktdaten über die Alpaca Markets API abruft und
+Backtests berechnet. Das Frontend ist reines Vanilla JS/HTML,
+gerendert im Electron-Fenster. Charts werden mit Plotly.js
+dargestellt, das Panel-Layout verwendet Split.js.
 
-3. Starten
-   Doppelklick auf start.bat
+
+TECH STACK
+----------
+Layer       | Technologie
+------------|----------------------------------------------
+Desktop     | Electron 33 (Node.js)
+Backend     | Python, FastAPI, Uvicorn
+Datenabruf  | Alpaca Markets API (alpaca-py)
+Berechnung  | pandas, numpy
+Frontend    | Vanilla JS, HTML, CSS
+Charts      | Plotly.js (CDN)
+Layout      | Split.js (npm)
+Kommunik.   | REST (fetch) – Frontend → Backend localhost:8000
 
 
 ORDNERSTRUKTUR
 --------------
-TradingPlatform/
-├── app.py              → Einstiegspunkt, Navigation
-├── start.bat           → App starten per Doppelklick
-├── pages/
-│   ├── home.py         → Homescreen
-│   └── backtest.py     → Backtesting-Tool
-├── indicators/
-│   ├── __init__.py     → automatisches Laden
-│   └── rsi.py          → Beispiel
-└── strategies/
-    ├── __init__.py     → automatisches Laden
-    └── sma_cross.py    → Beispiel
+QuantTERMINAL_OS/
+│
+├── electron/
+│   ├── main.js         → Electron Entry Point, erstellt BrowserWindow,
+│   │                     startet Python-Backend als Child Process
+│   └── preload.js      → Electron Preload Script
+│
+├── frontend/
+│   ├── index.html      → Haupt-HTML, enthält alle Seiten als <div class="page">
+│   │                     Sidebar-Navigation, Plotly-Container, Controls-Panel
+│   ├── css/
+│   │   └── style.css   → Gesamtes Styling (Dark Theme, Panel-Layout)
+│   └── js/
+│       ├── app.js      → Initialisierung, SPA-Navigation (navigateTo),
+│       │                 Sidebar collapsed/expanded per Seite
+│       ├── api.js      → fetch-Wrapper für alle Backend-Endpunkte
+│       │                 (apiModules, apiBacktest, apiSymbols)
+│       ├── backtest.js → Hauptlogik Backtest-Seite:
+│       │                 Split-Panels init, renderChart(), renderEquity(),
+│       │                 renderPerformance(), runBacktest()
+│       ├── home.js     → Homescreen – rendert Modul-Karten
+│       └── symbols.js  → Symbol-Browser Modal (Suche, Filterung, Auswahl)
+│
+├── backend/
+│   └── main.py         → FastAPI App, alle API-Endpunkte:
+│                         GET  /api/health
+│                         GET  /api/modules   → listet Indikatoren & Strategien
+│                         GET  /api/symbols   → alle handelbare Symbole
+│                         POST /api/backtest  → führt Backtest aus, gibt
+│                                               Chart, Equity, Performance zurück
+│
+├── indicators/         → PLUGIN-SYSTEM: jede .py-Datei wird automatisch geladen
+│   ├── __init__.py     → exportiert load_all() Hilfsfunktion
+│   ├── sma.py          → Simple Moving Average  → schreibt "sma_{period}" Spalte
+│   └── rsi.py          → Relative Strength Index → schreibt "rsi" Spalte
+│
+├── strategies/         → PLUGIN-SYSTEM: jede .py-Datei wird automatisch geladen
+│   ├── __init__.py     → exportiert load_all() Hilfsfunktion
+│   └── sma_cross.py    → SMA-Crossover-Strategie → schreibt "signal" Spalte
+│                         (1 = Long, -1 = Short, 0 = neutral)
+│
+├── data/
+│   ├── __init__.py
+│   ├── config.py       → ALPACA_API_KEY, ALPACA_SECRET_KEY (lokal, nicht committen)
+│   └── symbols.py      → get_all_symbols() – strukturierte Symbol-Liste
+│                         (Aktien, ETFs, Crypto, Indizes) für den Symbol-Browser
+│
+├── package.json        → Electron-Projekt, main: electron/main.js
+│                         dependencies: split.js
+│                         devDependencies: electron, electron-builder
+└── AI_CONTEXT.txt      → Diese Datei
 
 
-NEUEN INDIKATOR HINZUFUEGEN
-----------------------------
-1. Neue .py Datei in indicators/ erstellen, z.B. macd.py
-2. Funktion muss DataFrame entgegennehmen und zurueckgeben:
+DATENFLUSS – BACKTEST
+---------------------
+1. User stellt Parameter ein (Symbol, Timeframe, Datum, Kapital,
+   Strategie, Indikatoren) im Controls-Panel (frontend)
 
-   def macd(df, fast=12, slow=26, col="close"):
-       ema_fast   = df[col].ewm(span=fast).mean()
-       ema_slow   = df[col].ewm(span=slow).mean()
-       df["macd"] = ema_fast - ema_slow
-       return df
+2. runBacktest() in backtest.js sendet POST /api/backtest
+   mit BacktestRequest JSON
 
-3. Fertig - erscheint automatisch als Checkbox im Backtester
+3. backend/main.py:
+   a) Mappt Symbol (z.B. ^GSPC → SPY) und Timeframe
+   b) Ruft OHLCV-Daten via Alpaca ab (Stock oder Crypto Client)
+   c) Wendet aktive Indikatoren auf den DataFrame an
+   d) Führt die gewählte Strategie aus → erzeugt "signal"-Spalte
+   e) Berechnet position, returns, strat_ret, equity, bh_equity
+   f) Berechnet Potential Equity Zone (equity_high / equity_low)
+   g) Berechnet Equity-Projektion (Upper/Lower/Mid Band)
+   h) Berechnet Performance-Metriken (Sharpe, Drawdown, Win Rate, etc.)
+   i) Gibt chart{}, equity{}, performance{} zurück
 
-
-NEUE STRATEGIE HINZUFUEGEN
----------------------------
-1. Neue .py Datei in strategies/ erstellen, z.B. rsi_reversion.py
-2. Funktion muss signal-Spalte setzen (1=Long, -1=Short, 0=neutral):
-
-   def rsi_reversion(df, oversold=30, overbought=70, **kwargs):
-       df["signal"] = 0
-       df.loc[df["rsi"] < oversold,   "signal"] = 1
-       df.loc[df["rsi"] > overbought, "signal"] = -1
-       return df
-
-3. Fertig - erscheint automatisch im Dropdown im Backtester
+4. Frontend rendert:
+   - renderChart()       → Candlestick + Indikator-Overlays (Plotly)
+   - renderEquity()      → Equity Curve, B&H, Potential Zone, Projektion
+   - renderPerformance() → 8 Metrik-Boxen im Performance-Panel
 
 
-NEUE PAGE HINZUFUEGEN
-----------------------
-1. Neue .py Datei in pages/ erstellen, z.B. markov.py
-2. Normaler Streamlit-Code:
+PLUGIN-SYSTEM (Indikatoren & Strategien)
+-----------------------------------------
+backend/main.py lädt beim Start automatisch alle .py-Dateien aus
+indicators/ und strategies/ via importlib.import_module().
 
-   import streamlit as st
-   st.title("Markov Model")
+Bedingung: Der Dateiname muss identisch mit dem Funktionsnamen sein.
+Beispiel:  indicators/macd.py  muss Funktion def macd(df, ...) enthalten
 
-3. Optional: Icon in app.py → PAGE_ICONS eintragen
-   Optional: Beschreibung in pages/home.py → PAGE_META eintragen
-4. Erscheint automatisch in Navigation und Homescreen
+Indikatoren:  erhalten DataFrame, geben DataFrame zurück (neue Spalten hinzufügen)
+Strategien:   erhalten DataFrame, müssen df["signal"] Spalte setzen
+              (1=Long, -1=Short, 0=neutral), geben DataFrame zurück
+
+Neue Plugins erscheinen automatisch in GET /api/modules und damit
+im Frontend (Dropdown / Checkbox).
 
 
-UNTERSTUETZTE SYMBOLE (yfinance)
-----------------------------------
-Forex      → EURUSD=X, GBPUSD=X
-Indices    → ^GDAXI (DAX), ^SPX (S&P 500)
-Aktien     → AAPL, TSLA
-Crypto     → BTC-USD, ETH-USD
-Rohstoffe  → GC=F (Gold), CL=F (Oel)
+PERFORMANCE-METRIKEN (backend/main.py)
+--------------------------------------
+Metrik          | Berechnung
+----------------|--------------------------------------------------
+Total Return    | (end_equity / capital - 1) * 100
+B&H Return      | (end_bh_equity / capital - 1) * 100
+Sharpe Ratio    | (mean(strat_ret) / std(strat_ret)) * sqrt(252)
+Max Drawdown    | min((equity - cummax(equity)) / cummax(equity)) * 100
+Win Rate        | wins / (wins + losses) * 100
+Total Trades    | wins + losses (Perioden mit non-zero return)
+Profit Factor   | gross_profit / abs(gross_loss)
+Calmar Ratio    | total_return / abs(max_drawdown)
+
+
+FRONTEND – SEITEN
+-----------------
+page-home       → Modulkarten-Übersicht (dynamisch aus apiModules)
+page-backtest   → Haupt-Backtesting-Interface (aktiv)
+page-markov     → Markov-Chain-Analyse (Coming Soon)
+page-optimizer  → Strategie-Optimizer (Coming Soon)
+
+
+FRONTEND – PANEL-LAYOUT (Split.js)
+------------------------------------
+Vertikale Splits:
+  [perf-panel 15%] | [backtest-body 85%]
+  [chart-panel 65%] | [equity-panel 35%]
+
+Horizontaler Split:
+  [panels-container 78%] | [controls-panel 22%]
+
+Alle Panels sind per Drag resizable. Performance-Panel hat
+automatisch berechnetes min/maxHeight basierend auf Box-Anzahl.
+
+
+BEKANNTE OFFENE PUNKTE (Stand Feb 2026)
+----------------------------------------
+- strategies/sma_cross.py: Import-Bug (Modul statt Funktion)
+- RSI-Daten werden vom Backend gesendet aber nicht im Chart gerendert
+- indicator_cols filtert nur sma_ und ema_ Präfixe
+- slow_period ist hardcoded auf 50 (nicht konfigurierbar)
+- Short-Signale (-1) werden durch .clip(lower=0) ignoriert
+- Math.min/max mit Spread-Operator kann bei langen Zeitreihen crashen
+- Seiten Markov und Optimizer sind noch nicht implementiert
+- split.js und weitere Scripts in index.html doppelt eingebunden

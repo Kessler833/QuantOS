@@ -1,9 +1,22 @@
-let activeIndicators  = []
-let splitInitialized  = false
-let lastEquityData    = null
-let equityResizeTimer = null
-let vertSplit         = null
-let clampingPerf      = false
+let activeIndicators   = []
+let splitInitialized   = false
+let lastEquityData     = null
+let equityResizeTimer  = null
+let vertSplit          = null
+let clampingPerf       = false
+
+// ── LIGHTWEIGHT CHARTS STATE ──────────────────────────────
+let lwChart           = null
+let lwCandleSeries    = null
+let lwIndicatorSeries = []
+
+// ── PLOTLY STATE ──────────────────────────────────────────
+let equityRelayoutGuard = false
+
+// ── HELPERS ───────────────────────────────────────────────
+function toUnixTime(dateStr) {
+  return Math.floor(new Date(dateStr).getTime() / 1000)
+}
 
 // ── CONSTRAINTS ───────────────────────────────────────────
 function calcPerfConstraints() {
@@ -17,7 +30,7 @@ function calcPerfConstraints() {
   const padV     = 10
 
   const boxW = Math.max(50, (panelW - padH - (count - 1) * gap) / count)
-  const minH = Math.round(headerH + padV + boxW / 4)
+  const minH = Math.round(headerH + padV + boxW / 5)
   const maxH = Math.round(headerH + padV + boxW)
 
   return { minH, maxH, boxW, headerH, padV }
@@ -30,7 +43,6 @@ function applyPerfMinHeight() {
 }
 
 // ── SNAP-BACK bei Gutter-Release ──────────────────────────
-// Wenn am Minimum losgelassen → +4px Puffer → Gutter bleibt nutzbar
 function snapPerfAfterDrag() {
   if (clampingPerf || !vertSplit) return
   const perfEl    = document.getElementById('perf-panel')
@@ -38,12 +50,12 @@ function snapPerfAfterDrag() {
   if (!perfEl || !container) return
 
   const { minH, maxH } = calcPerfConstraints()
-  const perfH   = perfEl.clientHeight
-  const usable  = container.clientHeight - 5  // minus gutter
+  const perfH  = perfEl.clientHeight
+  const usable = container.clientHeight - 5
 
   let targetH = null
-  if (perfH <= minH)  targetH = minH + 4   // ← Puffer verhindert Stuck-State
-  if (perfH > maxH)   targetH = maxH
+  if (perfH <= minH) targetH = minH + 4
+  if (perfH > maxH)  targetH = maxH
 
   if (targetH !== null) {
     clampingPerf = true
@@ -57,26 +69,15 @@ function snapPerfAfterDrag() {
   }
 }
 
-function enforceMaxPerf() {
-  if (clampingPerf || !vertSplit) return
-  const perfEl    = document.getElementById('perf-panel')
-  const container = document.getElementById('page-backtest')
-  if (!perfEl || !container) return
-  const { maxH }  = calcPerfConstraints()
-  if (perfEl.clientHeight <= maxH) return
-
-  clampingPerf = true
-  const usable = container.clientHeight - 5
-  const pct    = Math.min(99, (maxH / usable) * 100)
-  vertSplit.setSizes([pct, 100 - pct])
-  setTimeout(() => { clampingPerf = false }, 80)
-}
-
 // ── CHARTS RESIZE ─────────────────────────────────────────
 function resizeAllCharts() {
-  const c = document.getElementById('plotly-chart')
+  const container = document.getElementById('lwc-chart')
+  if (lwChart && container) {
+    const w = container.clientWidth
+    const h = container.clientHeight
+    if (w > 0 && h > 0) lwChart.resize(w, h)
+  }
   const e = document.getElementById('plotly-equity')
-  if (c && c.data) Plotly.Plots.resize(c)
   if (e && e.data) Plotly.Plots.resize(e)
 }
 
@@ -129,7 +130,7 @@ function renderLegend(containerId, items) {
   }).join('')
 }
 
-// ── RESIZE OBSERVERS ─────────────────────────────────────
+// ── RESIZE OBSERVERS ──────────────────────────────────────
 function initChartResizeObserver() {
   const obs = new ResizeObserver(() => {
     resizeAllCharts()
@@ -154,7 +155,93 @@ function initPerfResizeObserver() {
   obs.observe(perfEl)
 }
 
-// ── INIT ─────────────────────────────────────────────────
+// ── LIGHTWEIGHT CHARTS INIT (lazy, idempotent) ────────────
+function ensureLwcChart() {
+  const container = document.getElementById('lwc-chart')
+  if (!container) return false
+  if (lwChart && lwCandleSeries) return true
+
+  if (lwChart) {
+    try { lwChart.remove() } catch (_) {}
+    lwChart = null
+    lwCandleSeries = null
+    lwIndicatorSeries = []
+  }
+
+  container.innerHTML = ''
+
+  lwChart = LightweightCharts.createChart(container, {
+    width:  container.clientWidth  || 600,
+    height: container.clientHeight || 300,
+    layout: {
+      background: { color: '#0f0f1a' },
+      textColor:  '#6c7086',
+    },
+    watermark: {
+      visible: false,
+    },
+    grid: {
+      vertLines: { color: '#1a1a2e' },
+      horzLines: { color: '#1a1a2e' },
+    },
+    crosshair: {
+      mode: LightweightCharts.CrosshairMode.Normal,
+    },
+    rightPriceScale: {
+      borderColor: '#1a1a2e',
+    },
+    timeScale: {
+      borderColor:    '#1a1a2e',
+      timeVisible:    true,
+      secondsVisible: false,
+      barSpacing:     8,
+      minBarSpacing:  2,
+      fixLeftEdge:    true,
+      fixRightEdge:   true,
+      rightOffset:    12,
+    },
+    handleScroll: {
+      mouseWheel:       true,
+      pressedMouseMove: true,
+      horzTouchDrag:    true,
+      vertTouchDrag:    false,
+    },
+    handleScale: {
+      axisPressedMouseMove: true,
+      mouseWheel:           true,
+      pinch:                true,
+    },
+  })
+
+  lwCandleSeries = lwChart.addCandlestickSeries({
+    upColor:         '#26a69a',
+    downColor:       '#ef5350',
+    borderUpColor:   '#26a69a',
+    borderDownColor: '#ef5350',
+    wickUpColor:     '#26a69a',
+    wickDownColor:   '#ef5350',
+  })
+
+  // Watermark entfernen
+  setTimeout(() => {
+    const watermarks = container.querySelectorAll('a')
+    watermarks.forEach(el => el.remove())
+    
+    container.querySelectorAll('div').forEach(el => {
+      const style = window.getComputedStyle(el)
+      if (style.position === 'absolute' && 
+          (style.zIndex === '1' || style.zIndex === '2')) {
+        if (el.textContent.length < 50) {
+          el.remove()
+        }
+      }
+    })
+  }, 100)
+
+  return true
+}
+
+// ── INIT ──────────────────────────────────────────────────
 function initBacktest(modules) {
   const stratSelect = document.getElementById('ctrl-strategy')
   stratSelect.innerHTML = ''
@@ -210,13 +297,12 @@ function initSplitPanels() {
   const { minH } = calcPerfConstraints()
 
   const onDrag = () => {
-    enforceMaxPerf()
     resizeAllCharts()
     resizePerf()
   }
 
   const onDragEnd = () => {
-    snapPerfAfterDrag()   // ← snap +4px wenn am Minimum losgelassen
+    snapPerfAfterDrag()
     resizeAllCharts()
     resizePerf()
   }
@@ -253,20 +339,26 @@ function initSplitPanels() {
 }
 
 function initEmptyCharts() {
-  const layout = {
+  ensureLwcChart()
+
+  Plotly.newPlot('plotly-equity', [], {
     paper_bgcolor: '#0f0f1a', plot_bgcolor: '#0f0f1a',
-    font: { color: '#6c7086', size: 11 },
-    margin: { t: 10, r: 10, b: 40, l: 55 },
-    showlegend: false,
+    font:          { color: '#6c7086', size: 11 },
+    margin:        { t: 10, r: 10, b: 40, l: 55 },
+    dragmode:      'zoom',
+    showlegend:    false,
     xaxis: { gridcolor: '#1a1a2e', zerolinecolor: '#1a1a2e' },
     yaxis: { gridcolor: '#1a1a2e', zerolinecolor: '#1a1a2e' }
-  }
-  Plotly.newPlot('plotly-chart',  [], layout, { responsive: true })
-  Plotly.newPlot('plotly-equity', [], layout, { responsive: true })
+  }, {
+    responsive:  true,
+    scrollZoom:  true,
+    doubleClick: 'reset',
+  })
+
   setTimeout(resizeAllCharts, 200)
 }
 
-// ── BACKTEST ─────────────────────────────────────────────
+// ── BACKTEST ──────────────────────────────────────────────
 async function runBacktest() {
   const btn = document.getElementById('btn-run')
   btn.disabled = true
@@ -297,16 +389,35 @@ async function runBacktest() {
   btn.textContent = '▶ Backtest starten'
 }
 
-// ── RENDER CHART ─────────────────────────────────────────
+// ── RENDER CHART (Lightweight Charts) ────────────────────
 function renderChart(data) {
-  const traces = [{
-    type: 'candlestick',
-    x: data.dates,
-    open: data.open, high: data.high, low: data.low, close: data.close,
-    increasing: { line: { color: '#26a69a' } },
-    decreasing: { line: { color: '#ef5350' } },
-    showlegend: false
-  }]
+  if (!ensureLwcChart()) {
+    console.error('lwc-chart Container nicht gefunden')
+    return
+  }
+
+  lwIndicatorSeries.forEach(s => lwChart.removeSeries(s))
+  lwIndicatorSeries = []
+
+  const candles = data.dates
+    .map((d, i) => ({
+      time:  toUnixTime(d),
+      open:  data.open[i],
+      high:  data.high[i],
+      low:   data.low[i],
+      close: data.close[i],
+    }))
+    .filter(c => c.open !== null && c.high !== null && c.low !== null && c.close !== null)
+
+  lwCandleSeries.setData(candles)
+
+  lwChart.timeScale().fitContent()
+
+  setTimeout(() => {
+    lwChart.priceScale('right').applyOptions({
+      scaleMargins: { top: 0.1, bottom: 0.1 },
+    })
+  }, 50)
 
   const colors = ['#f7a233', '#7aa2f7', '#f38ba8', '#e0c060']
   const legendItems = [
@@ -315,115 +426,225 @@ function renderChart(data) {
   ]
 
   Object.entries(data.indicators).forEach(([col, values], i) => {
-    const color = colors[i % colors.length]
-    traces.push({
-      type: 'scatter', x: data.dates, y: values,
-      line: { color, width: 1.5 }, showlegend: false
+    const color  = colors[i % colors.length]
+    const series = lwChart.addLineSeries({
+      color,
+      lineWidth:        1.5,
+      priceLineVisible: false,
+      lastValueVisible: false,
     })
+    const lineData = data.dates
+      .map((d, idx) => ({ time: toUnixTime(d), value: values[idx] }))
+      .filter(p => p.value !== null)
+
+    series.setData(lineData)
+    lwIndicatorSeries.push(series)
     legendItems.push({ name: col.toUpperCase(), color })
   })
-
-  Plotly.react('plotly-chart', traces, {
-    paper_bgcolor: '#0f0f1a', plot_bgcolor: '#0f0f1a',
-    font: { color: '#6c7086', size: 11 },
-    margin: { t: 10, r: 10, b: 40, l: 55 },
-    showlegend: false,
-    xaxis: { gridcolor: '#1a1a2e', zerolinecolor: '#1a1a2e', rangeslider: { visible: false } },
-    yaxis: { gridcolor: '#1a1a2e', zerolinecolor: '#1a1a2e', autorange: true }
-  }, { responsive: true })
 
   renderLegend('legend-chart', legendItems)
   setTimeout(resizeAllCharts, 100)
 }
 
-// ── RENDER EQUITY ─────────────────────────────────────────
+// ── RENDER EQUITY (Plotly) ────────────────────────────────
 function renderEquity(data) {
   lastEquityData = data
 
   const lastDate   = data.dates[data.dates.length - 1]
   const lastEquity = data.equity[data.equity.length - 1]
 
-  const allY = [
+  const anchorY = [
     ...data.equity.filter(v => v !== null),
     ...data.bh_equity.filter(v => v !== null),
     ...data.equity_high.filter(v => v !== null),
-    ...data.equity_low.filter(v => v !== null)
+    ...data.equity_low.filter(v => v !== null),
   ]
-  const minY      = Math.min(...allY)
-  const maxY      = Math.max(...allY)
-  const dataRange = maxY - minY
+  const yDataMin  = anchorY.reduce((a, b) => Math.min(a, b))
+  const yDataMax  = anchorY.reduce((a, b) => Math.max(a, b))
+  const dataRange = yDataMax - yDataMin
+  const yBuffer   = dataRange * 0.1
 
-  const equityPanelEl = document.getElementById('equity-panel')
-  const panelPx       = equityPanelEl ? Math.max(equityPanelEl.clientHeight, 50) : 300
-  const buffer = Math.min((dataRange / panelPx) * 50, dataRange * 0.15)
+  const yMin = yDataMin - yBuffer
+  const yMax = yDataMax + yBuffer
+
+  const capProj = v => v === null ? null : Math.min(Math.max(v, yMin), yMax)
+  const cappedUpper = data.projection.upper.map(capProj)
+  const cappedLower = data.projection.lower.map(capProj)
+  const cappedMid   = data.projection.mid.map(capProj)
+
+  const xMin = data.dates[0]
+  const xMax = data.projection.dates.length > 0
+    ? data.projection.dates[data.projection.dates.length - 1]
+    : lastDate
+
+  const xMinMs = new Date(xMin).getTime()
+  const xMaxMs = new Date(xMax).getTime()
 
   const traces = [
     {
+      name: 'Potential Equity High',
       type: 'scatter', x: data.dates, y: data.equity_high,
       line: { color: 'rgba(255,210,50,0.7)', width: 1 },
-      showlegend: false, hoverinfo: 'skip'
+      showlegend: false, hoverinfo: 'x+y+name'
     },
     {
+      name: 'Potential Equity Low',
       type: 'scatter', x: data.dates, y: data.equity_low,
       fill: 'tonexty', fillcolor: 'rgba(255,210,50,0.15)',
       line: { color: 'rgba(255,210,50,0.7)', width: 1 },
-      showlegend: false, hoverinfo: 'skip'
+      showlegend: false, hoverinfo: 'x+y+name'
     },
     {
+      name: 'Buy & Hold',
       type: 'scatter', x: data.dates, y: data.bh_equity,
-      line: { color: '#6c7086', width: 1.5, dash: 'dot' }, showlegend: false
+      line: { color: '#6c7086', width: 1.5, dash: 'dot' },
+      showlegend: false, hoverinfo: 'x+y+name'
     },
     {
+      name: 'Equity',
       type: 'scatter', x: data.dates, y: data.equity,
-      line: { color: '#26a69a', width: 2 }, showlegend: false
+      line: { color: '#26a69a', width: 2 },
+      showlegend: false, hoverinfo: 'x+y+name'
     },
     {
+      name: 'Projection Upper',
       type: 'scatter',
       x: [lastDate, ...data.projection.dates],
-      y: [lastEquity, ...data.projection.upper],
+      y: [lastEquity, ...cappedUpper],
       line: { color: 'rgba(122,162,247,0.2)', width: 1 },
-      showlegend: false, hoverinfo: 'skip'
+      showlegend: false, hoverinfo: 'x+y+name'
     },
     {
+      name: 'Projection Lower',
       type: 'scatter',
       x: [lastDate, ...data.projection.dates],
-      y: [lastEquity, ...data.projection.lower],
+      y: [lastEquity, ...cappedLower],
       fill: 'tonexty', fillcolor: 'rgba(122,162,247,0.1)',
       line: { color: 'rgba(122,162,247,0.25)', width: 1 },
-      showlegend: false
+      showlegend: false, hoverinfo: 'x+y+name'
     },
     {
+      name: 'Erwartete Equity',
       type: 'scatter',
       x: [lastDate, ...data.projection.dates],
-      y: [lastEquity, ...data.projection.mid],
+      y: [lastEquity, ...cappedMid],
       line: { color: '#7aa2f7', width: 1.5, dash: 'dot' },
-      showlegend: false
+      showlegend: false, hoverinfo: 'x+y+name'
     }
   ]
 
   Plotly.react('plotly-equity', traces, {
-    paper_bgcolor: '#0f0f1a', plot_bgcolor: '#0f0f1a',
-    font: { color: '#6c7086', size: 11 },
-    margin: { t: 10, r: 10, b: 40, l: 55 },
-    showlegend: false,
-    xaxis: { gridcolor: '#1a1a2e', zerolinecolor: '#1a1a2e' },
+    paper_bgcolor: '#0f0f1a',
+    plot_bgcolor:  '#0f0f1a',
+    font:          { color: '#6c7086', size: 11 },
+    margin:        { t: 10, r: 10, b: 40, l: 55 },
+    dragmode:      'pan',
+    showlegend:    false,
+    xaxis: {
+      gridcolor:     '#1a1a2e',
+      zerolinecolor: '#1a1a2e',
+      range:         [xMin, xMax],
+    },
     yaxis: {
-      gridcolor: '#1a1a2e', zerolinecolor: '#1a1a2e',
-      range: [minY - buffer, maxY + buffer]
+      gridcolor:     '#1a1a2e',
+      zerolinecolor: '#1a1a2e',
+      range:         [yMin, yMax],
     },
     shapes: [{
       type: 'line', x0: lastDate, x1: lastDate, y0: 0, y1: 1,
       xref: 'x', yref: 'paper',
       line: { color: '#3a3a5e', width: 1, dash: 'dot' }
     }]
-  }, { responsive: true })
+  }, {
+    responsive:  true,
+    scrollZoom:  true,
+    doubleClick: false,
+    modeBarButtonsToRemove: [
+      'zoom2d',
+      'autoScale2d'
+    ],
+    displaylogo: false
+  })
+
+  const plotEl = document.getElementById('plotly-equity')
+  plotEl.removeAllListeners && plotEl.removeAllListeners('plotly_relayout')
+
+  plotEl.on('plotly_relayout', (eventData) => {
+    if (equityRelayoutGuard) return
+    
+    const hasX = eventData['xaxis.range[0]'] !== undefined
+    const hasY = eventData['yaxis.range[0]'] !== undefined
+    if (!hasX && !hasY) return
+
+    let needsSnap = false
+    const updates = {}
+
+    if (hasX) {
+      let curMin = new Date(eventData['xaxis.range[0]']).getTime()
+      let curMax = new Date(eventData['xaxis.range[1]']).getTime()
+      const timeWidth = curMax - curMin
+
+      if (curMin < xMinMs) {
+        curMin = xMinMs
+        curMax = curMin + timeWidth
+        needsSnap = true
+      }
+
+      if (curMax > xMaxMs) {
+        curMax = xMaxMs
+        curMin = curMax - timeWidth
+        needsSnap = true
+      }
+
+      if (curMin < xMinMs) curMin = xMinMs
+      if (curMax > xMaxMs) curMax = xMaxMs
+
+      if (needsSnap) {
+        updates['xaxis.range[0]'] = new Date(curMin).toISOString()
+        updates['xaxis.range[1]'] = new Date(curMax).toISOString()
+      }
+    }
+
+    if (hasY) {
+      let curYMin = parseFloat(eventData['yaxis.range[0]'])
+      let curYMax = parseFloat(eventData['yaxis.range[1]'])
+      const yHeight = curYMax - curYMin
+
+      if (curYMin < yMin) {
+        curYMin = yMin
+        curYMax = curYMin + yHeight
+        needsSnap = true
+      }
+
+      if (curYMax > yMax) {
+        curYMax = yMax
+        curYMin = curYMax - yHeight
+        needsSnap = true
+      }
+
+      if (curYMin < yMin) curYMin = yMin
+      if (curYMax > yMax) curYMax = yMax
+
+      if (needsSnap) {
+        updates['yaxis.range[0]'] = curYMin
+        updates['yaxis.range[1]'] = curYMax
+      }
+    }
+
+    if (needsSnap && Object.keys(updates).length > 0) {
+      equityRelayoutGuard = true
+      Plotly.relayout(plotEl, updates).then(() => {
+        equityRelayoutGuard = false
+      })
+    }
+  })
 
   renderLegend('legend-equity', [
     { name: 'Potential Equity', color: 'rgba(255,210,50,0.8)', fill: 'rgba(255,210,50,0.15)' },
     { name: 'Buy & Hold',       color: '#6c7086', dash: true },
-    { name: 'Strategie',        color: '#26a69a' },
+    { name: 'Equity',           color: '#26a69a' },
     { name: 'Projection Zone',  color: 'rgba(122,162,247,0.6)', fill: 'rgba(122,162,247,0.1)' },
-    { name: 'Erwarteter Pfad',  color: '#7aa2f7', dash: true }
+    { name: 'Erwartete Equity', color: '#7aa2f7', dash: true }
   ])
 
   setTimeout(resizeAllCharts, 100)
@@ -432,11 +653,11 @@ function renderEquity(data) {
 // ── RENDER PERFORMANCE ────────────────────────────────────
 function renderPerformance(p) {
   const totSign  = p.total_return  >= 0 ? '+' : ''
-  const bhSign   = p.bh_return    >= 0 ? '+' : ''
+  const bhSign   = p.bh_return     >= 0 ? '+' : ''
   const totClass = p.total_return  >= 0 ? 'positive' : 'negative'
-  const bhClass  = p.bh_return    >= 0 ? 'positive' : 'negative'
+  const bhClass  = p.bh_return     >= 0 ? 'positive' : 'negative'
   const pfClass  = p.profit_factor >= 1 ? 'positive' : 'negative'
-  const caClass  = p.calmar       >= 0 ? 'positive' : 'negative'
+  const caClass  = p.calmar        >= 0 ? 'positive' : 'negative'
 
   document.getElementById('perf-metrics').innerHTML = `
     <div class="perf-metric-inline">

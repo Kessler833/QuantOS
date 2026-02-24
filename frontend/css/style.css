@@ -105,7 +105,7 @@ body { display: flex; }
 /* ── PERFORMANCE PANEL ──────────────────────── */
 #perf-panel {
   flex: none;
-  min-height: 0;        /* ← Split.js übernimmt */
+  min-height: 0;
   display: flex;
   flex-direction: column;
   background: #0a0a14;
@@ -166,20 +166,19 @@ body { display: flex; }
 /* ── BACKTEST BODY ──────────────────────────── */
 #backtest-body {
   flex: none;
-  min-height: 0;        /* ← wichtig für Split.js */
+  min-height: 0;
   display: flex;
   overflow: hidden;
 }
 
-/* ── PANELS + CONTROLS als Split-Kinder ─────── */
-/* min-height: 0 + min-width: 0 damit overflow korrekt greift */
+/* ── PANELS + CONTROLS ──────────────────────── */
 #panels-container {
   display: flex;
   flex-direction: column;
   overflow: hidden;
   min-width: 0;
   min-height: 0;
-  padding-bottom: 1.5vh;   /* ← dynamischer unterer Rand */
+  padding-bottom: 1.5vh;
   background: #0f0f1a;
 }
 
@@ -189,10 +188,10 @@ body { display: flex; }
   display: flex;
   flex-direction: column;
   padding: 14px;
-  overflow-y: auto;        /* scrollt wenn Inhalt zu groß */
+  overflow-y: auto;
   overflow-x: hidden;
   min-width: 140px;
-  min-height: 0;           /* ← lässt overflow-y greifen */
+  min-height: 0;
 }
 
 /* ── CHART / EQUITY PANELS ──────────────────── */
@@ -223,7 +222,9 @@ body { display: flex; }
   min-height: 0;
 }
 
-#plotly-chart, #plotly-equity {
+/* ── CHART CONTAINERS ───────────────────────── */
+/* ← Einzige Änderung: #plotly-chart → #lwc-chart */
+#lwc-chart, #plotly-equity {
   flex: 1;
   width: 100%;
   min-height: 0;
@@ -378,6 +379,7 @@ body { display: flex; }
   align-items: center;
   padding: 16px 20px;
   border-bottom: 1px solid #1e1e30;
+  gap: 8px;
 }
 
 .modal-header h3 {
@@ -387,14 +389,26 @@ body { display: flex; }
 }
 
 .modal-close {
-  font-size: 24px;
+  background: transparent;
+  border: none;
   color: #6c7086;
+  font-size: 24px;
   cursor: pointer;
-  transition: color 0.2s;
+  padding: 0;
+  width: 32px;
+  height: 32px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  border-radius: 6px;
+  transition: all 0.2s ease;
   line-height: 1;
+  margin-left: auto;
+  font-family: Arial, sans-serif;
 }
 
 .modal-close:hover {
+  background: #1a1a2e;
   color: #ef5350;
 }
 
@@ -428,9 +442,17 @@ body { display: flex; }
   overflow-y: auto;
   display: flex;
   flex-direction: column;
-  gap: 6px;
+  gap: 8px;
   min-height: 0;
+  padding-right: 8px;
 }
+
+#symbol-list::-webkit-scrollbar        { width: 10px; }
+#symbol-list::-webkit-scrollbar-track  { background: #0d0d1e; border-radius: 5px; }
+#symbol-list::-webkit-scrollbar-thumb  { background: #2a2a3e; border-radius: 5px; }
+#symbol-list::-webkit-scrollbar-thumb:hover { background: #7aa2f7; }
+
+#symbol-list > .symbol-row { margin-bottom: 6px; }
 
 .symbol-row {
   background: #1a1a2e;
@@ -449,22 +471,9 @@ body { display: flex; }
   background: #1e1e2e;
 }
 
-.symbol-info {
-  display: flex;
-  flex-direction: column;
-  gap: 3px;
-}
-
-.symbol-ticker {
-  font-size: 13px;
-  font-weight: 700;
-  color: #7aa2f7;
-}
-
-.symbol-name {
-  font-size: 11px;
-  color: #6c7086;
-}
+.symbol-info    { display: flex; flex-direction: column; gap: 3px; }
+.symbol-ticker  { font-size: 13px; font-weight: 700; color: #7aa2f7; }
+.symbol-name    { font-size: 11px; color: #6c7086; }
 
 .symbol-exchange {
   font-size: 10px;
@@ -483,9 +492,7 @@ body { display: flex; }
   font-size: 13px;
 }
 
-.error {
-  color: #ef5350;
-}
+.error { color: #ef5350; }
 
 #btn-browse-symbols {
   background: #1a1a2e;
@@ -505,11 +512,7 @@ body { display: flex; }
 }
 
 /* ── SYMBOL GROUPS ──────────────────────────── */
-.symbol-group {
-  display: flex;
-  flex-direction: column;
-  margin-bottom: 8px;
-}
+.symbol-group   { display: flex; flex-direction: column; margin-bottom: 8px; }
 
 .group-header {
   background: #1a1a2e;
@@ -523,21 +526,9 @@ body { display: flex; }
   transition: all 0.15s;
 }
 
-.group-header:hover {
-  border-color: #7aa2f7;
-  background: #1e1e2e;
-}
-
-.group-icon {
-  font-size: 16px;
-}
-
-.group-title {
-  flex: 1;
-  font-size: 13px;
-  font-weight: 600;
-  color: #cdd6f4;
-}
+.group-header:hover { border-color: #7aa2f7; background: #1e1e2e; }
+.group-icon         { font-size: 16px; }
+.group-title        { flex: 1; font-size: 13px; font-weight: 600; color: #cdd6f4; }
 
 .group-count {
   font-size: 11px;
@@ -561,7 +552,14 @@ body { display: flex; }
   padding-left: 12px;
 }
 
-/* ── VIEW TOGGLE BUTTON ─────────────────────── */
+.group-symbols {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  padding: 6px 0;
+}
+
+/* ── VIEW TOGGLE ────────────────────────────── */
 .view-toggle {
   background: #1a1a2e;
   border: 1px solid #2a2a3e;
@@ -574,18 +572,15 @@ body { display: flex; }
   transition: all 0.15s;
 }
 
-.view-toggle:hover {
-  border-color: #7aa2f7;
-  background: #1e1e2e;
-}
+.view-toggle:hover { border-color: #7aa2f7; background: #1e1e2e; }
 
-/* ── SORT BUTTON FIX ────────────────────────── */
+/* ── SORT TOGGLE ────────────────────────────── */
 .sort-toggle {
   background: #1a1a2e;
   border: 1px solid #2a2a3e;
   color: #cdd6f4;
   padding: 6px 12px;
-  border-radius: 6px;  /* ← Runde Ecken */
+  border-radius: 6px;
   cursor: pointer;
   font-size: 12px;
   font-weight: 500;
@@ -596,67 +591,11 @@ body { display: flex; }
   gap: 6px;
 }
 
-.sort-toggle::before {
-  content: 'Sort by: ';
-  color: #6c7086;  /* ← Sekundäre Farbe */
-  font-weight: 400;
-}
+.sort-toggle::before { content: 'Sort by: '; color: #6c7086; font-weight: 400; }
+.sort-toggle:hover   { border-color: #7aa2f7; background: #1e1e2e; transform: translateY(-1px); }
+.sort-toggle:active  { transform: translateY(0); }
 
-.sort-toggle:hover {
-  border-color: #7aa2f7;
-  background: #1e1e2e;
-  transform: translateY(-1px);
-}
-
-.sort-toggle:active {
-  transform: translateY(0);
-}
-
-/* ── CLOSE BUTTON FIX ───────────────────────── */
-.modal-close {
-  background: transparent;
-  border: none;
-  color: #6c7086;
-  font-size: 24px;
-  cursor: pointer;
-  padding: 0;
-  width: 32px;
-  height: 32px;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  border-radius: 6px;  /* ← Runde Ecken */
-  transition: all 0.2s ease;
-  line-height: 1;
-  margin-left: auto;  /* ← Pushed nach rechts */
-}
-
-.modal-close:hover {
-  background: #1a1a2e;
-  color: #ef5350;
-}
-
-/* ── SCROLLBAR FIX ──────────────────────────── */
-#symbol-list::-webkit-scrollbar {
-  width: 10px;
-}
-
-#symbol-list::-webkit-scrollbar-track {
-  background: #0d0d1e;  /* ← Dunkler Track */
-  border-radius: 5px;
-}
-
-#symbol-list::-webkit-scrollbar-thumb {
-  background: #2a2a3e;  /* ← Border-Farbe */
-  border-radius: 5px;
-  transition: background 0.2s ease;
-}
-
-#symbol-list::-webkit-scrollbar-thumb:hover {
-  background: #7aa2f7;  /* ← Akzentfarbe beim Hover */
-}
-
-/* ── LOADING SPINNER ────────────────────────── */
+/* ── MISC ───────────────────────────────────── */
 .loading-spinner {
   text-align: center;
   padding: 12px;
@@ -665,77 +604,36 @@ body { display: flex; }
   font-style: italic;
 }
 
-/* ── GROUP SYMBOLS CONTAINER ────────────────── */
-.group-symbols {
-  display: flex;
-  flex-direction: column;
-  gap: 1px;
-}
-
 .scroll-trigger {
   display: flex;
   justify-content: center;
   padding: 8px;
 }
 
-/* ── MODAL HEADER SPACING FIX ───────────────── */
-.modal-header {
-  display: flex;
-  justify-content: space-between;
-  align-items: center;
-  padding: 16px 20px;
-  border-bottom: 1px solid #1e1e30;
-  gap: 8px;  /* ← Abstand zwischen allen Elementen */
+/* LightweightCharts Watermark entfernen */
+#lwc-chart > div > table > tr > td > div > div:first-child {
+  display: none !important;
 }
 
-/* ── SYMBOL LIST PADDING FIX ────────────────── */
-#symbol-list {
-  flex: 1;
-  overflow-y: auto;
-  display: flex;
-  flex-direction: column;
-  gap: 8px;
-  min-height: 0;
-  padding-right: 8px;  /* ← Abstand zwischen Scrollbar und Tabs */
+/* Alternativer Ansatz über Attribut-Selektor */
+div[style*="position: absolute"][style*="z-index: 1"][style*="pointer-events: none"] {
+  display: none !important;
 }
 
-/* Optional: Scrollbar etwas weiter rechts positionieren */
-#symbol-list::-webkit-scrollbar {
-  width: 10px;
-  margin-left: 4px;  /* ← Extra Spacing */
+/* Oder per Klasse falls vorhanden */
+.tv-lightweight-charts__watermark {
+  display: none !important;
 }
 
-.modal-close {
-  background: transparent;
-  border: none;
-  color: #6c7086;
-  font-size: 24px;
-  cursor: pointer;
-  padding: 0;
-  width: 32px;
-  height: 32px;
-  display: flex;
-  align-items: center;      /* ← Vertikal zentrieren */
-  justify-content: center;  /* ← Horizontal zentrieren */
-  border-radius: 6px;
-  transition: all 0.2s ease;
-  line-height: 1;           /* ← Wichtig! Verhindert Extra-Spacing */
-  font-family: Arial, sans-serif;  /* ← Manche Fonts haben weird × Alignment */
-}
-
-.modal-close:hover {
-  background: #1a1a2e;
-  color: #ef5350;
-}
-
-.group-symbols {
-  display: flex;
-  flex-direction: column;
-  gap: 6px;        /* ← Abstand zwischen den Rows */
-  padding: 6px 0;  /* ← Etwas Padding oben/unten */
-}
-
-/* Falls Rows direkt in #symbol-list liegen (Suche/Alphabetisch) */
-#symbol-list > .symbol-row {
-  margin-bottom: 6px;
+/* Alle TradingView/LightweightCharts Watermarks verstecken */
+a[href*="tradingview.com"],
+a[href*="lightweight-charts"],
+div[style*="left: 0"][style*="color: rgba"],
+div[style*="font-size: 11px"][style*="z-index"],
+#lwc-chart a,
+#lwc-chart > div > div:first-child {
+  display: none !important;
+  visibility: hidden !important;
+  opacity: 0 !important;
+  pointer-events: none !important;
 }
