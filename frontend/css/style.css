@@ -194,6 +194,12 @@ body { display: flex; }
   min-height: 0;
 }
 
+/* ← NEU: Scrollbar-Styling für Controls-Panel */
+#controls-panel::-webkit-scrollbar        { width: 10px; }
+#controls-panel::-webkit-scrollbar-track  { background: #0d0d1e; border-radius: 5px; }
+#controls-panel::-webkit-scrollbar-thumb  { background: #2a2a3e; border-radius: 5px; }
+#controls-panel::-webkit-scrollbar-thumb:hover { background: #7aa2f7; }
+
 /* ── CHART / EQUITY PANELS ──────────────────── */
 #chart-panel, #equity-panel {
   display: flex;

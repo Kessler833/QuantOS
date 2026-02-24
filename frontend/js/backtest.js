@@ -13,6 +13,69 @@ let lwIndicatorSeries = []
 // ── PLOTLY STATE ──────────────────────────────────────────
 let equityRelayoutGuard = false
 
+// ══════════════════════════════════════════════════════════
+//  CACHE HELPERS – alle try-catch, schlagen nie durch
+// ══════════════════════════════════════════════════════════
+function _cacheLoad() {
+  try {
+    if (typeof QuantCache === 'undefined') return null;
+    return QuantCache.load();
+  } catch (e) { return null; }
+}
+
+function _cacheRestoreParams() {
+  try {
+    var c = _cacheLoad();
+    if (!c) return;
+    var p = c.params;
+
+    var set = function(id, val) {
+      var el = document.getElementById(id);
+      if (el && val !== undefined && val !== null) el.value = val;
+    };
+
+    set('ctrl-symbol',   p.symbol);
+    set('ctrl-interval', p.interval);
+    set('ctrl-start',    p.start);
+    set('ctrl-end',      p.end);
+    set('ctrl-capital',  p.capital);
+    set('ctrl-sma',      p.sma);
+
+    // Strategie NACH dem Befüllen des Dropdowns setzen
+    if (p.strategy) {
+      var stratEl = document.getElementById('ctrl-strategy');
+      if (stratEl) stratEl.value = p.strategy;
+    }
+
+    // Aktive Indikatoren
+    if (Array.isArray(p.indicators) && p.indicators.length > 0) {
+      activeIndicators = p.indicators.slice();
+      renderIndicatorTags();
+    }
+  } catch (e) {
+    console.warn('[Cache] _cacheRestoreParams fehlgeschlagen:', e);
+  }
+}
+
+function _cacheSaveParams() {
+  try {
+    if (typeof QuantCache === 'undefined') return;
+    var get = function(id) { var el = document.getElementById(id); return el ? el.value : ''; };
+    QuantCache.saveParams({
+      symbol:     get('ctrl-symbol')   || 'SPY',
+      interval:   get('ctrl-interval') || '1d',
+      start:      get('ctrl-start')    || '2024-01-01',
+      end:        get('ctrl-end')      || '2025-01-01',
+      capital:    parseFloat(get('ctrl-capital')) || 10000,
+      sma:        parseInt(get('ctrl-sma'))       || 20,
+      strategy:   get('ctrl-strategy') || '',
+      indicators: activeIndicators.slice()
+    });
+  } catch (e) {
+    console.warn('[Cache] _cacheSaveParams fehlgeschlagen:', e);
+  }
+}
+
 // ── HELPERS ───────────────────────────────────────────────
 function toUnixTime(dateStr) {
   return Math.floor(new Date(dateStr).getTime() / 1000)
@@ -222,18 +285,14 @@ function ensureLwcChart() {
     wickDownColor:   '#ef5350',
   })
 
-  // Watermark entfernen
   setTimeout(() => {
     const watermarks = container.querySelectorAll('a')
     watermarks.forEach(el => el.remove())
-    
     container.querySelectorAll('div').forEach(el => {
       const style = window.getComputedStyle(el)
-      if (style.position === 'absolute' && 
+      if (style.position === 'absolute' &&
           (style.zIndex === '1' || style.zIndex === '2')) {
-        if (el.textContent.length < 50) {
-          el.remove()
-        }
+        if (el.textContent.length < 50) el.remove()
       }
     })
   }, 100)
@@ -244,6 +303,10 @@ function ensureLwcChart() {
 // ── INIT ──────────────────────────────────────────────────
 function initBacktest(modules) {
   const stratSelect = document.getElementById('ctrl-strategy')
+  if (!stratSelect) {
+    console.error('[QuantOS] ctrl-strategy nicht im DOM – index.html prüfen!')
+    return
+  }
   stratSelect.innerHTML = ''
   modules.strategies.forEach(s => {
     const opt = document.createElement('option')
@@ -252,6 +315,10 @@ function initBacktest(modules) {
   })
 
   const indSelect = document.getElementById('ctrl-indicator')
+  if (!indSelect) {
+    console.error('[QuantOS] ctrl-indicator nicht im DOM!')
+    return
+  }
   indSelect.innerHTML = ''
   modules.indicators.forEach(i => {
     const opt = document.createElement('option')
@@ -264,10 +331,21 @@ function initBacktest(modules) {
     if (val && !activeIndicators.includes(val)) {
       activeIndicators.push(val)
       renderIndicatorTags()
+      _cacheSaveParams()  // [CACHE]
     }
   })
 
   document.getElementById('btn-run').addEventListener('click', runBacktest)
+
+  // [CACHE] Parameter aus Cache wiederherstellen
+  _cacheRestoreParams()
+
+  // [CACHE] Parameter bei Änderung automatisch speichern
+  ;['ctrl-symbol','ctrl-interval','ctrl-start','ctrl-end',
+    'ctrl-capital','ctrl-sma','ctrl-strategy'].forEach(id => {
+    const el = document.getElementById(id)
+    if (el) el.addEventListener('change', _cacheSaveParams)
+  })
 
   initSplitPanels()
   initEmptyCharts()
@@ -285,6 +363,7 @@ function renderIndicatorTags() {
     tag.querySelector('.remove-btn').addEventListener('click', () => {
       activeIndicators = activeIndicators.filter(i => i !== name)
       renderIndicatorTags()
+      _cacheSaveParams()  // [CACHE]
     })
     container.appendChild(tag)
   })
@@ -296,38 +375,78 @@ function initSplitPanels() {
   applyPerfMinHeight()
   const { minH } = calcPerfConstraints()
 
+  // [CACHE] Gespeicherte Layout-Größen laden
+  var cached = _cacheLoad()
+  var ly = (cached && cached.layout) ? cached.layout : {}
+
   const onDrag = () => {
     resizeAllCharts()
     resizePerf()
   }
 
-  const onDragEnd = () => {
-    snapPerfAfterDrag()
-    resizeAllCharts()
-    resizePerf()
-  }
-
   vertSplit = Split(['#perf-panel', '#backtest-body'], {
-    sizes:      [15, 85],
+    sizes:      [ly.perfSize || 15, ly.bodySize || 85],
     minSize:    [minH, 300],
     gutterSize: 5,
     direction:  'vertical',
     onDrag,
-    onDragEnd
+    onDragEnd: (sizes) => {
+      // WICHTIG: Erst Snap ausführen, dann speichern
+      snapPerfAfterDrag()
+      resizeAllCharts()
+      resizePerf()
+      
+      // Cache speichern NACH dem Snap (mit Delay damit Snap fertig ist)
+      setTimeout(() => {
+        try {
+          if (typeof QuantCache !== 'undefined' && vertSplit) {
+            const finalSizes = vertSplit.getSizes()
+            QuantCache.saveLayout({ 
+              perfSize: finalSizes[0], 
+              bodySize: finalSizes[1] 
+            })
+          }
+        } catch(e) {}
+      }, 100)
+    }
   })
 
   Split(['#panels-container', '#controls-panel'], {
-    sizes: [78, 22], minSize: [400, 140], gutterSize: 5,
+    sizes:      [ly.panelsSize || 78, ly.controlsSize || 22],
+    minSize:    [400, 140],
+    gutterSize: 5,
     direction:  'horizontal',
     onDrag:     resizeAllCharts,
-    onDragEnd:  resizeAllCharts
+    onDragEnd:  (sizes) => {
+      resizeAllCharts()
+      try { 
+        if (typeof QuantCache !== 'undefined') {
+          QuantCache.saveLayout({ 
+            panelsSize: sizes[0], 
+            controlsSize: sizes[1] 
+          })
+        }
+      } catch(e) {}
+    }
   })
 
   Split(['#chart-panel', '#equity-panel'], {
-    sizes: [65, 35], minSize: [150, 100], gutterSize: 5,
+    sizes:      [ly.chartSize || 65, ly.equitySize || 35],
+    minSize:    [150, 100],
+    gutterSize: 5,
     direction:  'vertical',
     onDrag:     resizeAllCharts,
-    onDragEnd:  resizeAllCharts
+    onDragEnd:  (sizes) => {
+      resizeAllCharts()
+      try { 
+        if (typeof QuantCache !== 'undefined') {
+          QuantCache.saveLayout({ 
+            chartSize: sizes[0], 
+            equitySize: sizes[1] 
+          })
+        }
+      } catch(e) {}
+    }
   })
 
   splitInitialized = true
@@ -337,6 +456,7 @@ function initSplitPanels() {
     resizePerf()
   })
 }
+
 
 function initEmptyCharts() {
   ensureLwcChart()
@@ -363,6 +483,8 @@ async function runBacktest() {
   const btn = document.getElementById('btn-run')
   btn.disabled = true
   btn.textContent = '⏳ Lädt...'
+
+  _cacheSaveParams()  // [CACHE]
 
   const params = {
     symbol:            document.getElementById('ctrl-symbol').value,
@@ -410,7 +532,6 @@ function renderChart(data) {
     .filter(c => c.open !== null && c.high !== null && c.low !== null && c.close !== null)
 
   lwCandleSeries.setData(candles)
-
   lwChart.timeScale().fitContent()
 
   setTimeout(() => {
@@ -559,10 +680,7 @@ function renderEquity(data) {
     responsive:  true,
     scrollZoom:  true,
     doubleClick: false,
-    modeBarButtonsToRemove: [
-      'zoom2d',
-      'autoScale2d'
-    ],
+    modeBarButtonsToRemove: ['zoom2d', 'autoScale2d'],
     displaylogo: false
   })
 
@@ -571,7 +689,7 @@ function renderEquity(data) {
 
   plotEl.on('plotly_relayout', (eventData) => {
     if (equityRelayoutGuard) return
-    
+
     const hasX = eventData['xaxis.range[0]'] !== undefined
     const hasY = eventData['yaxis.range[0]'] !== undefined
     if (!hasX && !hasY) return
@@ -584,18 +702,8 @@ function renderEquity(data) {
       let curMax = new Date(eventData['xaxis.range[1]']).getTime()
       const timeWidth = curMax - curMin
 
-      if (curMin < xMinMs) {
-        curMin = xMinMs
-        curMax = curMin + timeWidth
-        needsSnap = true
-      }
-
-      if (curMax > xMaxMs) {
-        curMax = xMaxMs
-        curMin = curMax - timeWidth
-        needsSnap = true
-      }
-
+      if (curMin < xMinMs) { curMin = xMinMs; curMax = curMin + timeWidth; needsSnap = true }
+      if (curMax > xMaxMs) { curMax = xMaxMs; curMin = curMax - timeWidth; needsSnap = true }
       if (curMin < xMinMs) curMin = xMinMs
       if (curMax > xMaxMs) curMax = xMaxMs
 
@@ -610,18 +718,8 @@ function renderEquity(data) {
       let curYMax = parseFloat(eventData['yaxis.range[1]'])
       const yHeight = curYMax - curYMin
 
-      if (curYMin < yMin) {
-        curYMin = yMin
-        curYMax = curYMin + yHeight
-        needsSnap = true
-      }
-
-      if (curYMax > yMax) {
-        curYMax = yMax
-        curYMin = curYMax - yHeight
-        needsSnap = true
-      }
-
+      if (curYMin < yMin) { curYMin = yMin; curYMax = curYMin + yHeight; needsSnap = true }
+      if (curYMax > yMax) { curYMax = yMax; curYMin = curYMax - yHeight; needsSnap = true }
       if (curYMin < yMin) curYMin = yMin
       if (curYMax > yMax) curYMax = yMax
 
@@ -633,9 +731,7 @@ function renderEquity(data) {
 
     if (needsSnap && Object.keys(updates).length > 0) {
       equityRelayoutGuard = true
-      Plotly.relayout(plotEl, updates).then(() => {
-        equityRelayoutGuard = false
-      })
+      Plotly.relayout(plotEl, updates).then(() => { equityRelayoutGuard = false })
     }
   })
 
