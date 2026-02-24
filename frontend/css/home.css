@@ -1,0 +1,154 @@
+/* ══════════════════════════════════════════════════════════
+   HOME PAGE
+   ══════════════════════════════════════════════════════════ */
+
+#page-home {
+  padding: 20px;
+  overflow-y: auto;
+  height: 100vh;
+}
+
+#home-container { 
+  padding: 60px; 
+  max-width: 900px; 
+}
+
+#home-container h1 { 
+  font-size: 32px; 
+  color: #cdd6f4; 
+  margin-bottom: 8px; 
+}
+
+/* Subtitle auf der Home */
+.subtitle { 
+  color: #6c7086; 
+  font-size: 15px; 
+  margin-bottom: 48px; 
+}
+
+/* Module Cards im oberen Bereich */
+#module-cards { 
+  display: flex; 
+  gap: 20px; 
+  flex-wrap: wrap; 
+}
+
+.module-card {
+  background: #1a1a2e;
+  border: 1px solid #2a2a3e;
+  border-radius: 10px;
+  padding: 28px;
+  width: 220px;
+  cursor: pointer;
+  transition: all 0.2s;
+}
+
+.module-card:hover { 
+  border-color: #7aa2f7; 
+  transform: translateY(-2px); 
+}
+
+.module-card .card-icon { 
+  font-size: 28px; 
+  margin-bottom: 12px; 
+}
+
+.module-card .card-title { 
+  font-size: 15px; 
+  font-weight: 600; 
+  color: #cdd6f4; 
+  margin-bottom: 8px; 
+}
+
+.module-card .card-desc { 
+  font-size: 12px; 
+  color: #6c7086; 
+  line-height: 1.5; 
+}
+
+/* Untere Home-Kacheln */
+.home-cards {
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: center;
+  gap: 16px;
+  margin: 24px auto;
+  max-width: 1200px;
+  padding: 0 20px;
+}
+
+.home-card {
+  background: #1a1a2e;
+  border: 1px solid #2a2a3e;
+  border-radius: 10px;
+  padding: 20px 18px;
+  text-align: center;
+  cursor: pointer;
+  transition: all 0.3s ease;
+  flex: 0 0 auto;
+  width: 180px;
+}
+
+.home-card:hover {
+  transform: translateY(-3px);
+  border-color: #7aa2f7;
+  box-shadow: 0 6px 20px rgba(122, 162, 247, 0.2);
+}
+
+.home-card-icon {
+  font-size: 42px;
+  margin-bottom: 10px;
+}
+
+.home-card-title {
+  font-size: 16px;
+  font-weight: 700;
+  color: #e0e0ff;
+  margin-bottom: 6px;
+}
+
+.home-card-desc {
+  font-size: 11px;
+  color: #6c7086;
+  line-height: 1.4;
+}
+
+/* API Key Warning - volle Breite mit kleinem Edge-Buffer */
+.api-key-warning {
+  width: calc(100% - 40px);      /* 20px Buffer links + rechts */
+  max-width: none;               /* keine 90%-Begrenzung mehr */
+  margin: 0 auto 12px auto;      /* Abstand von 24px auf 12px reduziert */
+  padding: 0 20px;
+}
+
+.api-key-warning > div {
+  background: rgba(239, 83, 80, 0.1);
+  border: 2px solid rgba(239, 83, 80, 0.3);
+  border-radius: 10px;
+  padding: 16px 20px;
+  text-align: center;
+  backdrop-filter: blur(10px);
+}
+
+/* Responsive */
+@media (max-width: 900px) {
+  .home-cards {
+    flex-wrap: wrap;
+  }
+  
+  .home-card {
+    width: 160px;
+  }
+}
+
+@media (max-width: 600px) {
+  .home-cards {
+    flex-direction: column;
+    align-items: center;
+  }
+  
+  .home-card {
+    width: 100%;
+    max-width: 280px;
+  }
+}
