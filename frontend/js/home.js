@@ -123,4 +123,3 @@ function _checkApiKeysOnHome(container) {
     console.error('[Home] API-Key Check failed:', e)
   }
 }
-

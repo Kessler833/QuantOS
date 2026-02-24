@@ -1,95 +1,80 @@
 /* ══════════════════════════════════════════════════════════
-   BACKTEST PAGE LAYOUT
+   CHART & EQUITY PANELS
    ══════════════════════════════════════════════════════════ */
 
-#page-backtest { 
-  flex-direction: column; 
-}
-
-#perf-panel {
-  flex: none;
-  min-height: 0;
+#chart-panel, #equity-panel {
   display: flex;
   flex-direction: column;
-  background: #0a0a14;
+  overflow: hidden;
+  min-height: 0;
+}
+
+.panel-header {
+  background: #0d0d1e;
+  color: #6c7086;
+  padding: 7px 14px;
+  font-size: 11px;
+  font-weight: 600;
+  letter-spacing: 0.5px;
   border-bottom: 1px solid #1e1e30;
-  overflow: hidden;
+  flex-shrink: 0;
 }
 
-#perf-metrics {
-  display: flex;
-  flex-wrap: nowrap;
-  gap: 5px;
-  padding: 5px 10px;
+.panel-content {
   flex: 1;
-  align-items: center;
   overflow: hidden;
-}
-
-#perf-metrics .placeholder { 
-  color: #3a3a5e; 
-  font-size: 11px; 
-}
-
-.perf-metric-inline {
-  flex: 0 0 auto;
-  background: #1a1a2e;
-  border-radius: 6px;
+  padding: 6px 6px 0 6px;
   display: flex;
   flex-direction: column;
+  min-height: 0;
+}
+
+#lwc-chart, #plotly-equity {
+  flex: 1;
+  width: 100%;
+  min-height: 0;
+}
+
+.plot-legend {
+  flex-shrink: 0;
+  display: flex;
+  flex-wrap: wrap;
+  gap: 4px 14px;
+  padding: 4px 6px;
+  border-top: 1px solid #1e1e30;
+  background: #0d0d1e;
+}
+
+.legend-item {
+  display: flex;
   align-items: center;
-  justify-content: center;
-  gap: 1px;
-  overflow: hidden;
-}
-
-.perf-metric-inline .label {
-  color: #8899bb;
-  letter-spacing: 0.4px;
+  gap: 5px;
+  font-size: 10px;
+  color: #9a9ab0;
   white-space: nowrap;
-  overflow: hidden;
-  text-overflow: ellipsis;
-  max-width: 100%;
-  text-align: center;
-  font-weight: 500;
 }
 
-.perf-metric-inline .value {
-  font-weight: 700;
-  color: #cdd6f4;
-  white-space: nowrap;
-  overflow: hidden;
-  text-overflow: ellipsis;
-  max-width: 100%;
-  text-align: center;
-  line-height: 1.1;
+/* LightweightCharts Watermark entfernen */
+#lwc-chart > div > table > tr > td > div > div:first-child {
+  display: none !important;
 }
 
-.perf-metric-inline .value.sub { 
-  font-weight: 400; 
+div[style*="position: absolute"][style*="z-index: 1"][style*="pointer-events: none"] {
+  display: none !important;
 }
 
-.perf-metric-inline .value.positive { 
-  color: #26a69a; 
+.tv-lightweight-charts__watermark {
+  display: none !important;
 }
 
-.perf-metric-inline .value.negative { 
-  color: #ef5350; 
-}
-
-#backtest-body {
-  flex: none;
-  min-height: 0;
-  display: flex;
-  overflow: hidden;
-}
-
-#panels-container {
-  display: flex;
-  flex-direction: column;
-  overflow: hidden;
-  min-width: 0;
-  min-height: 0;
-  padding-bottom: 1.5vh;
-  background: #0f0f1a;
+a[href*="tradingview.com"],
+a[href*="lightweight-charts"],
+div[style*="left: 0"][style*="color: rgba"],
+div[style*="font-size: 11px"][style*="z-index"],
+#lwc-chart a,
+#lwc-chart > div > div:first-child {
+  display: none !important;
+  visibility: hidden !important;
+  opacity: 0 !important;
+  pointer-events: none !important;
 }
