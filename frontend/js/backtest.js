@@ -2,16 +2,16 @@
 //  Backtest Page – Charts, Controls & Rendering
 // ══════════════════════════════════════════════
 
-let activeIndicators   = []
-let splitInitialized   = false
-let lastEquityData     = null
-let equityResizeTimer  = null
-let vertSplit          = null
-let clampingPerf       = false
+let activeIndicators = []
+let splitInitialized = false
+let lastEquityData = null
+let equityResizeTimer = null
+let vertSplit = null
+let clampingPerf = false
 
 // ── LIGHTWEIGHT CHARTS STATE ──────────────────────────────
-let lwChart           = null
-let lwCandleSeries    = null
+let lwChart = null
+let lwCandleSeries = null
 let lwIndicatorSeries = []
 
 // ── PLOTLY STATE ──────────────────────────────────────────
@@ -33,17 +33,17 @@ function _cacheRestoreParams() {
     if (!c) return;
     var p = c.params;
 
-    var set = function(id, val) {
+    var set = function (id, val) {
       var el = document.getElementById(id);
       if (el && val !== undefined && val !== null) el.value = val;
     };
 
-    set('ctrl-symbol',   p.symbol);
+    set('ctrl-symbol', p.symbol);
     set('ctrl-interval', p.interval);
-    set('ctrl-start',    p.start);
-    set('ctrl-end',      p.end);
-    set('ctrl-capital',  p.capital);
-    set('ctrl-sma',      p.sma);
+    set('ctrl-start', p.start);
+    set('ctrl-end', p.end);
+    set('ctrl-capital', p.capital);
+    set('ctrl-sma', p.sma);
 
     // Strategie NACH dem Befüllen des Dropdowns setzen
     if (p.strategy) {
@@ -64,15 +64,15 @@ function _cacheRestoreParams() {
 function _cacheSaveParams() {
   try {
     if (typeof QuantCache === 'undefined') return;
-    var get = function(id) { var el = document.getElementById(id); return el ? el.value : ''; };
+    var get = function (id) { var el = document.getElementById(id); return el ? el.value : ''; };
     QuantCache.saveParams({
-      symbol:     get('ctrl-symbol')   || 'SPY',
-      interval:   get('ctrl-interval') || '1d',
-      start:      get('ctrl-start')    || '2024-01-01',
-      end:        get('ctrl-end')      || '2025-01-01',
-      capital:    parseFloat(get('ctrl-capital')) || 10000,
-      sma:        parseInt(get('ctrl-sma'))       || 20,
-      strategy:   get('ctrl-strategy') || '',
+      symbol: get('ctrl-symbol') || 'SPY',
+      interval: get('ctrl-interval') || '1d',
+      start: get('ctrl-start') || '2024-01-01',
+      end: get('ctrl-end') || '2025-01-01',
+      capital: parseFloat(get('ctrl-capital')) || 10000,
+      sma: parseInt(get('ctrl-sma')) || 20,
+      strategy: get('ctrl-strategy') || '',
       indicators: activeIndicators.slice()
     });
   } catch (e) {
@@ -87,14 +87,14 @@ function toUnixTime(dateStr) {
 
 // ── CONSTRAINTS ───────────────────────────────────────────
 function calcPerfConstraints() {
-  const perfEl   = document.getElementById('perf-panel')
+  const perfEl = document.getElementById('perf-panel')
   const headerEl = perfEl ? perfEl.querySelector('.panel-header') : null
-  const headerH  = headerEl ? headerEl.offsetHeight : 29
-  const panelW   = perfEl  ? perfEl.clientWidth     : (window.innerWidth - 180)
-  const count    = 8
-  const gap      = 5
-  const padH     = 20
-  const padV     = 10
+  const headerH = headerEl ? headerEl.offsetHeight : 29
+  const panelW = perfEl ? perfEl.clientWidth : (window.innerWidth - 180)
+  const count = 8
+  const gap = 5
+  const padH = 20
+  const padV = 10
 
   const boxW = Math.max(50, (panelW - padH - (count - 1) * gap) / count)
   const minH = Math.round(headerH + padV + boxW / 5)
@@ -112,17 +112,17 @@ function applyPerfMinHeight() {
 // ── SNAP-BACK bei Gutter-Release ──────────────────────────
 function snapPerfAfterDrag() {
   if (clampingPerf || !vertSplit) return
-  const perfEl    = document.getElementById('perf-panel')
+  const perfEl = document.getElementById('perf-panel')
   const container = document.getElementById('page-backtest')
   if (!perfEl || !container) return
 
   const { minH, maxH } = calcPerfConstraints()
-  const perfH  = perfEl.clientHeight
+  const perfH = perfEl.clientHeight
   const usable = container.clientHeight - 5
 
   let targetH = null
   if (perfH <= minH) targetH = minH + 4
-  if (perfH > maxH)  targetH = maxH
+  if (perfH > maxH) targetH = maxH
 
   if (targetH !== null) {
     clampingPerf = true
@@ -150,7 +150,7 @@ function resizeAllCharts() {
 
 // ── PERFORMANCE RESIZE ────────────────────────────────────
 function resizePerf() {
-  const perfEl    = document.getElementById('perf-panel')
+  const perfEl = document.getElementById('perf-panel')
   const metricsEl = document.getElementById('perf-metrics')
   if (!perfEl || !metricsEl) return
   const boxes = metricsEl.querySelectorAll('.perf-metric-inline')
@@ -158,16 +158,16 @@ function resizePerf() {
 
   const { boxW, headerH, padV } = calcPerfConstraints()
   const availH = perfEl.clientHeight - headerH - padV
-  const boxH   = Math.max(20, Math.min(availH, boxW))
+  const boxH = Math.max(20, Math.min(availH, boxW))
 
   boxes.forEach(el => {
-    el.style.width  = boxW + 'px'
+    el.style.width = boxW + 'px'
     el.style.height = boxH + 'px'
   })
 
-  const valSize   = Math.max(10, Math.min(36, boxH * 0.34))
-  const subSize   = Math.max(7,  Math.min(16, boxH * 0.17))
-  const labelSize = Math.max(6,  Math.min(12, boxH * 0.13))
+  const valSize = Math.max(10, Math.min(36, boxH * 0.34))
+  const subSize = Math.max(7, Math.min(16, boxH * 0.17))
+  const labelSize = Math.max(6, Math.min(12, boxH * 0.13))
 
   document.querySelectorAll('.perf-metric-inline .value:not(.sub)').forEach(el => {
     el.style.fontSize = valSize + 'px'
@@ -229,7 +229,7 @@ function ensureLwcChart() {
   if (lwChart && lwCandleSeries) return true
 
   if (lwChart) {
-    try { lwChart.remove() } catch (_) {}
+    try { lwChart.remove() } catch (_) { }
     lwChart = null
     lwCandleSeries = null
     lwIndicatorSeries = []
@@ -238,11 +238,11 @@ function ensureLwcChart() {
   container.innerHTML = ''
 
   lwChart = LightweightCharts.createChart(container, {
-    width:  container.clientWidth  || 600,
+    width: container.clientWidth || 600,
     height: container.clientHeight || 300,
     layout: {
       background: { color: '#0f0f1a' },
-      textColor:  '#6c7086',
+      textColor: '#6c7086',
     },
     watermark: {
       visible: false,
@@ -258,35 +258,35 @@ function ensureLwcChart() {
       borderColor: '#1a1a2e',
     },
     timeScale: {
-      borderColor:    '#1a1a2e',
-      timeVisible:    true,
+      borderColor: '#1a1a2e',
+      timeVisible: true,
       secondsVisible: false,
-      barSpacing:     8,
-      minBarSpacing:  2,
-      fixLeftEdge:    true,
-      fixRightEdge:   true,
-      rightOffset:    12,
+      barSpacing: 8,
+      minBarSpacing: 2,
+      fixLeftEdge: true,
+      fixRightEdge: true,
+      rightOffset: 12,
     },
     handleScroll: {
-      mouseWheel:       true,
+      mouseWheel: true,
       pressedMouseMove: true,
-      horzTouchDrag:    true,
-      vertTouchDrag:    false,
+      horzTouchDrag: true,
+      vertTouchDrag: false,
     },
     handleScale: {
       axisPressedMouseMove: true,
-      mouseWheel:           true,
-      pinch:                true,
+      mouseWheel: true,
+      pinch: true,
     },
   })
 
   lwCandleSeries = lwChart.addCandlestickSeries({
-    upColor:         '#26a69a',
-    downColor:       '#ef5350',
-    borderUpColor:   '#26a69a',
+    upColor: '#26a69a',
+    downColor: '#ef5350',
+    borderUpColor: '#26a69a',
     borderDownColor: '#ef5350',
-    wickUpColor:     '#26a69a',
-    wickDownColor:   '#ef5350',
+    wickUpColor: '#26a69a',
+    wickDownColor: '#ef5350',
   })
 
   setTimeout(() => {
@@ -295,7 +295,7 @@ function ensureLwcChart() {
     container.querySelectorAll('div').forEach(el => {
       const style = window.getComputedStyle(el)
       if (style.position === 'absolute' &&
-          (style.zIndex === '1' || style.zIndex === '2')) {
+        (style.zIndex === '1' || style.zIndex === '2')) {
         if (el.textContent.length < 50) el.remove()
       }
     })
@@ -343,11 +343,11 @@ function initBacktest(modules) {
 
   _cacheRestoreParams()
 
-  ;['ctrl-symbol','ctrl-interval','ctrl-start','ctrl-end',
-    'ctrl-capital','ctrl-sma','ctrl-strategy'].forEach(id => {
-    const el = document.getElementById(id)
-    if (el) el.addEventListener('change', _cacheSaveParams)
-  })
+    ;['ctrl-symbol', 'ctrl-interval', 'ctrl-start', 'ctrl-end',
+      'ctrl-capital', 'ctrl-sma', 'ctrl-strategy'].forEach(id => {
+        const el = document.getElementById(id)
+        if (el) el.addEventListener('change', _cacheSaveParams)
+      })
 
   initSplitPanels()
   initEmptyCharts()
@@ -386,65 +386,65 @@ function initSplitPanels() {
   }
 
   vertSplit = Split(['#perf-panel', '#backtest-body'], {
-    sizes:      [ly.perfSize || 15, ly.bodySize || 85],
-    minSize:    [minH, 300],
+    sizes: [ly.perfSize || 15, ly.bodySize || 85],
+    minSize: [minH, 300],
     gutterSize: 5,
-    direction:  'vertical',
+    direction: 'vertical',
     onDrag,
     onDragEnd: (sizes) => {
       snapPerfAfterDrag()
       resizeAllCharts()
       resizePerf()
-      
+
       setTimeout(() => {
         try {
           if (typeof QuantCache !== 'undefined' && vertSplit) {
             const finalSizes = vertSplit.getSizes()
-            QuantCache.saveLayout({ 
-              perfSize: finalSizes[0], 
-              bodySize: finalSizes[1] 
+            QuantCache.saveLayout({
+              perfSize: finalSizes[0],
+              bodySize: finalSizes[1]
             })
           }
-        } catch(e) {}
+        } catch (e) { }
       }, 100)
     }
   })
 
   Split(['#panels-container', '#controls-panel'], {
-    sizes:      [ly.panelsSize || 78, ly.controlsSize || 22],
-    minSize:    [400, 140],
+    sizes: [ly.panelsSize || 78, ly.controlsSize || 22],
+    minSize: [400, 140],
     gutterSize: 5,
-    direction:  'horizontal',
-    onDrag:     resizeAllCharts,
-    onDragEnd:  (sizes) => {
+    direction: 'horizontal',
+    onDrag: resizeAllCharts,
+    onDragEnd: (sizes) => {
       resizeAllCharts()
-      try { 
+      try {
         if (typeof QuantCache !== 'undefined') {
-          QuantCache.saveLayout({ 
-            panelsSize: sizes[0], 
-            controlsSize: sizes[1] 
+          QuantCache.saveLayout({
+            panelsSize: sizes[0],
+            controlsSize: sizes[1]
           })
         }
-      } catch(e) {}
+      } catch (e) { }
     }
   })
 
   Split(['#chart-panel', '#equity-panel'], {
-    sizes:      [ly.chartSize || 65, ly.equitySize || 35],
-    minSize:    [150, 100],
+    sizes: [ly.chartSize || 65, ly.equitySize || 35],
+    minSize: [150, 100],
     gutterSize: 5,
-    direction:  'vertical',
-    onDrag:     resizeAllCharts,
-    onDragEnd:  (sizes) => {
+    direction: 'vertical',
+    onDrag: resizeAllCharts,
+    onDragEnd: (sizes) => {
       resizeAllCharts()
-      try { 
+      try {
         if (typeof QuantCache !== 'undefined') {
-          QuantCache.saveLayout({ 
-            chartSize: sizes[0], 
-            equitySize: sizes[1] 
+          QuantCache.saveLayout({
+            chartSize: sizes[0],
+            equitySize: sizes[1]
           })
         }
-      } catch(e) {}
+      } catch (e) { }
     }
   })
 
@@ -461,15 +461,15 @@ function initEmptyCharts() {
 
   Plotly.newPlot('plotly-equity', [], {
     paper_bgcolor: '#0f0f1a', plot_bgcolor: '#0f0f1a',
-    font:          { color: '#6c7086', size: 11 },
-    margin:        { t: 10, r: 10, b: 40, l: 55 },
-    dragmode:      'zoom',
-    showlegend:    false,
+    font: { color: '#6c7086', size: 11 },
+    margin: { t: 10, r: 10, b: 40, l: 55 },
+    dragmode: 'zoom',
+    showlegend: false,
     xaxis: { gridcolor: '#1a1a2e', zerolinecolor: '#1a1a2e' },
     yaxis: { gridcolor: '#1a1a2e', zerolinecolor: '#1a1a2e' }
   }, {
-    responsive:  true,
-    scrollZoom:  true,
+    responsive: true,
+    scrollZoom: true,
     doubleClick: 'reset',
   })
 
@@ -490,44 +490,67 @@ async function runBacktest() {
 
   if (!apiKeys.alpacaKey || !apiKeys.alpacaSecret) {
     document.getElementById('perf-metrics').innerHTML = `
-      <div style="padding:20px;text-align:center;">
-        <div style="font-size:48px;margin-bottom:12px;">🔐</div>
-        <div style="color:#ef5350;font-size:14px;font-weight:600;margin-bottom:8px;">
-          Keine Alpaca API-Keys konfiguriert
-        </div>
-        <div style="color:#6c7086;font-size:12px;margin-bottom:16px;">
-          Bitte trage deine API-Keys ein um Backtests durchzuführen.
-        </div>
-        <button onclick="navigateTo('synchro')" style="
-          background:#7aa2f7;
-          color:#0a0a14;
-          border:none;
-          padding:10px 20px;
-          border-radius:6px;
-          font-size:13px;
-          font-weight:600;
-          cursor:pointer;
-        ">
-          Zu Data & Synchro →
-        </button>
+    <div style="
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      height: 100%;
+      padding: 12px;
+      text-align: center;
+      overflow: hidden;
+    ">
+      <div style="font-size: clamp(24px, 8vw, 48px); margin-bottom: 8px;">🔐</div>
+      <div style="
+        color: #ef5350;
+        font-size: clamp(10px, 2vw, 14px);
+        font-weight: 600;
+        margin-bottom: 6px;
+        line-height: 1.3;
+      ">
+        Keine API-Keys
       </div>
-    `
+      <div style="
+        color: #6c7086;
+        font-size: clamp(8px, 1.5vw, 12px);
+        margin-bottom: 10px;
+        line-height: 1.4;
+        max-width: 90%;
+      ">
+        Bitte Keys in Data & Synchro eintragen
+      </div>
+      <button onclick="navigateTo('synchro')" style="
+        background: #7aa2f7;
+        color: #0a0a14;
+        border: none;
+        padding: clamp(6px, 1.5vw, 10px) clamp(12px, 3vw, 20px);
+        border-radius: 6px;
+        font-size: clamp(9px, 1.8vw, 13px);
+        font-weight: 600;
+        cursor: pointer;
+        white-space: nowrap;
+      ">
+        Zu Data & Synchro →
+      </button>
+    </div>
+  `
     btn.disabled = false
     btn.textContent = '▶ Backtest starten'
     return
   }
 
+
   const params = {
-    symbol:            document.getElementById('ctrl-symbol').value,
-    interval:          document.getElementById('ctrl-interval').value,
-    start:             document.getElementById('ctrl-start').value,
-    end:               document.getElementById('ctrl-end').value,
-    capital:           parseFloat(document.getElementById('ctrl-capital').value),
-    sma_period:        parseInt(document.getElementById('ctrl-sma').value) || 20,
-    strategy:          document.getElementById('ctrl-strategy').value,
+    symbol: document.getElementById('ctrl-symbol').value,
+    interval: document.getElementById('ctrl-interval').value,
+    start: document.getElementById('ctrl-start').value,
+    end: document.getElementById('ctrl-end').value,
+    capital: parseFloat(document.getElementById('ctrl-capital').value),
+    sma_period: parseInt(document.getElementById('ctrl-sma').value) || 20,
+    strategy: document.getElementById('ctrl-strategy').value,
     active_indicators: activeIndicators,
-    alpaca_key:        apiKeys.alpacaKey,
-    alpaca_secret:     apiKeys.alpacaSecret
+    alpaca_key: apiKeys.alpacaKey,
+    alpaca_secret: apiKeys.alpacaSecret
   }
 
   try {
@@ -538,7 +561,7 @@ async function runBacktest() {
   } catch (err) {
     let errorMsg = err.message
     let hint = ''
-    
+
     if (err.message.includes('401') || err.message.includes('API-Keys')) {
       hint = '<div style="margin-top:8px;"><button onclick="navigateTo(\'synchro\')" style="background:#7aa2f7;color:#0a0a14;border:none;padding:8px 16px;border-radius:4px;font-size:12px;cursor:pointer;">API-Keys eintragen →</button></div>'
     }
@@ -566,10 +589,10 @@ function renderChart(data) {
 
   const candles = data.dates
     .map((d, i) => ({
-      time:  toUnixTime(d),
-      open:  data.open[i],
-      high:  data.high[i],
-      low:   data.low[i],
+      time: toUnixTime(d),
+      open: data.open[i],
+      high: data.high[i],
+      low: data.low[i],
       close: data.close[i],
     }))
     .filter(c => c.open !== null && c.high !== null && c.low !== null && c.close !== null)
@@ -590,10 +613,10 @@ function renderChart(data) {
   ]
 
   Object.entries(data.indicators).forEach(([col, values], i) => {
-    const color  = colors[i % colors.length]
+    const color = colors[i % colors.length]
     const series = lwChart.addLineSeries({
       color,
-      lineWidth:        1.5,
+      lineWidth: 1.5,
       priceLineVisible: false,
       lastValueVisible: false,
     })
@@ -614,7 +637,7 @@ function renderChart(data) {
 function renderEquity(data) {
   lastEquityData = data
 
-  const lastDate   = data.dates[data.dates.length - 1]
+  const lastDate = data.dates[data.dates.length - 1]
   const lastEquity = data.equity[data.equity.length - 1]
 
   const anchorY = [
@@ -623,10 +646,10 @@ function renderEquity(data) {
     ...data.equity_high.filter(v => v !== null),
     ...data.equity_low.filter(v => v !== null),
   ]
-  const yDataMin  = anchorY.reduce((a, b) => Math.min(a, b))
-  const yDataMax  = anchorY.reduce((a, b) => Math.max(a, b))
+  const yDataMin = anchorY.reduce((a, b) => Math.min(a, b))
+  const yDataMax = anchorY.reduce((a, b) => Math.max(a, b))
   const dataRange = yDataMax - yDataMin
-  const yBuffer   = dataRange * 0.1
+  const yBuffer = dataRange * 0.1
 
   const yMin = yDataMin - yBuffer
   const yMax = yDataMax + yBuffer
@@ -634,7 +657,7 @@ function renderEquity(data) {
   const capProj = v => v === null ? null : Math.min(Math.max(v, yMin), yMax)
   const cappedUpper = data.projection.upper.map(capProj)
   const cappedLower = data.projection.lower.map(capProj)
-  const cappedMid   = data.projection.mid.map(capProj)
+  const cappedMid = data.projection.mid.map(capProj)
 
   const xMin = data.dates[0]
   const xMax = data.projection.dates.length > 0
@@ -699,20 +722,20 @@ function renderEquity(data) {
 
   Plotly.react('plotly-equity', traces, {
     paper_bgcolor: '#0f0f1a',
-    plot_bgcolor:  '#0f0f1a',
-    font:          { color: '#6c7086', size: 11 },
-    margin:        { t: 10, r: 10, b: 40, l: 55 },
-    dragmode:      'pan',
-    showlegend:    false,
+    plot_bgcolor: '#0f0f1a',
+    font: { color: '#6c7086', size: 11 },
+    margin: { t: 10, r: 10, b: 40, l: 55 },
+    dragmode: 'pan',
+    showlegend: false,
     xaxis: {
-      gridcolor:     '#1a1a2e',
+      gridcolor: '#1a1a2e',
       zerolinecolor: '#1a1a2e',
-      range:         [xMin, xMax],
+      range: [xMin, xMax],
     },
     yaxis: {
-      gridcolor:     '#1a1a2e',
+      gridcolor: '#1a1a2e',
       zerolinecolor: '#1a1a2e',
-      range:         [yMin, yMax],
+      range: [yMin, yMax],
     },
     shapes: [{
       type: 'line', x0: lastDate, x1: lastDate, y0: 0, y1: 1,
@@ -720,8 +743,8 @@ function renderEquity(data) {
       line: { color: '#3a3a5e', width: 1, dash: 'dot' }
     }]
   }, {
-    responsive:  true,
-    scrollZoom:  true,
+    responsive: true,
+    scrollZoom: true,
     doubleClick: false,
     modeBarButtonsToRemove: ['zoom2d', 'autoScale2d'],
     displaylogo: false
@@ -780,9 +803,9 @@ function renderEquity(data) {
 
   renderLegend('legend-equity', [
     { name: 'Potential Equity', color: 'rgba(255,210,50,0.8)', fill: 'rgba(255,210,50,0.15)' },
-    { name: 'Buy & Hold',       color: '#6c7086', dash: true },
-    { name: 'Equity',           color: '#26a69a' },
-    { name: 'Projection Zone',  color: 'rgba(122,162,247,0.6)', fill: 'rgba(122,162,247,0.1)' },
+    { name: 'Buy & Hold', color: '#6c7086', dash: true },
+    { name: 'Equity', color: '#26a69a' },
+    { name: 'Projection Zone', color: 'rgba(122,162,247,0.6)', fill: 'rgba(122,162,247,0.1)' },
     { name: 'Erwartete Equity', color: '#7aa2f7', dash: true }
   ])
 
@@ -791,12 +814,12 @@ function renderEquity(data) {
 
 // ── RENDER PERFORMANCE ────────────────────────────────────
 function renderPerformance(p) {
-  const totSign  = p.total_return  >= 0 ? '+' : ''
-  const bhSign   = p.bh_return     >= 0 ? '+' : ''
-  const totClass = p.total_return  >= 0 ? 'positive' : 'negative'
-  const bhClass  = p.bh_return     >= 0 ? 'positive' : 'negative'
-  const pfClass  = p.profit_factor >= 1 ? 'positive' : 'negative'
-  const caClass  = p.calmar        >= 0 ? 'positive' : 'negative'
+  const totSign = p.total_return >= 0 ? '+' : ''
+  const bhSign = p.bh_return >= 0 ? '+' : ''
+  const totClass = p.total_return >= 0 ? 'positive' : 'negative'
+  const bhClass = p.bh_return >= 0 ? 'positive' : 'negative'
+  const pfClass = p.profit_factor >= 1 ? 'positive' : 'negative'
+  const caClass = p.calmar >= 0 ? 'positive' : 'negative'
 
   document.getElementById('perf-metrics').innerHTML = `
     <div class="perf-metric-inline">

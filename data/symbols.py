@@ -1,71 +1,63 @@
 # data/symbols.py
-from typing import Dict, List, Any, Set
+from typing import Dict, List, Any, Set, Optional
 from alpaca.trading.client import TradingClient
 from alpaca.trading.requests import GetAssetsRequest
 from alpaca.trading.enums import AssetClass, AssetStatus
 
-from . import config
+# ── Kein globaler Client mehr! ────────────────────────────────────
+# TradingClient wird jetzt on-demand mit Keys erstellt
 
-_trading_client = TradingClient(config.ALPACA_API_KEY, config.ALPACA_SECRET_KEY)
-
-
-def get_all_symbols() -> Dict[str, Any]:
+def get_all_symbols(alpaca_key: Optional[str] = None, alpaca_secret: Optional[str] = None) -> Dict[str, Any]:
     """
     Liefert ALLE relevanten Symbole für dein Terminal, inkl.:
     - US Equities (Aktien + ETFs)
     - Crypto Assets (Alpaca-Spot-Tokens)
     - synthetische Crypto-Pairs (BTC/USD, BTC/EUR, ETH/USD, …)
 
+    Args:
+        alpaca_key: Optional API Key (falls None, wird nur Cached-Struktur zurückgegeben)
+        alpaca_secret: Optional API Secret
+
     Rückgabeformat:
     {
-      "symbols": [
-        {
-          "symbol": "AAPL",
-          "name": "Apple Inc.",
-          "exchange": "NASDAQ",
-          "type": "Stock",
-          "sector": "Technology",
-          "asset_class": "us_equity",
-          "market_cap": "Mega Cap",
-          "is_popular": True,
-          "is_tradable": True,
-        },
-        {
-          "symbol": "BTCUSD",
-          "name": "Bitcoin / USD",
-          "exchange": "CRYPTO",
-          "type": "Crypto Spot",
-          "asset_class": "crypto",
-          ...
-        },
-        {
-          "symbol": "BTC/USD",
-          "name": "Bitcoin / USD (Pair)",
-          "exchange": "CRYPTO",
-          "type": "Crypto Pair",
-          "asset_class": "crypto",
-          ...
-        },
-        ...
-      ],
+      "symbols": [...],
       "metadata": { ... }
     }
     """
-    # ── 1) Equities laden ─────────────────────────────────
+    
+    # Falls keine Keys übergeben wurden, leere Liste zurückgeben
+    # (Backend kann das dann cachen oder Fallback verwenden)
+    if not alpaca_key or not alpaca_secret:
+        return {
+            "symbols": [],
+            "metadata": {
+                "total": 0,
+                "asset_classes": [],
+                "types": [],
+                "sectors": [],
+                "market_caps": [],
+                "error": "No API keys provided"
+            }
+        }
+    
+    # Trading Client mit übergebenen Keys erstellen
+    _trading_client = TradingClient(alpaca_key, alpaca_secret)
+
+    # ── 1) Equities laden ─────────────────────────────────────────
     eq_req = GetAssetsRequest(
         status=AssetStatus.ACTIVE,
         asset_class=AssetClass.US_EQUITY,
     )
     eq_assets = _trading_client.get_all_assets(eq_req)
 
-    # ── 2) Crypto-Assets laden ────────────────────────────
+    # ── 2) Crypto-Assets laden ────────────────────────────────────
     cr_req = GetAssetsRequest(
         status=AssetStatus.ACTIVE,
         asset_class=AssetClass.CRYPTO,
     )
     cr_assets = _trading_client.get_all_assets(cr_req)
 
-    # ── Sektor-Mapping / Popularität / Market-Cap-Proxy ───
+    # ── Sektor-Mapping / Popularität / Market-Cap-Proxy ───────────
     sector_map: Dict[str, str] = {
         # Technology
         "AAPL": "Technology", "MSFT": "Technology", "GOOGL": "Technology", "GOOG": "Technology",
@@ -148,7 +140,7 @@ def get_all_symbols() -> Dict[str, Any]:
 
     symbols: List[Dict[str, Any]] = []
 
-    # ── 3) Equities normalisieren ─────────────────────────
+    # ── 3) Equities normalisieren ─────────────────────────────────
     for a in eq_assets:
         if not a.tradable:
             continue
@@ -209,7 +201,7 @@ def get_all_symbols() -> Dict[str, Any]:
         }
         symbols.append(item)
 
-    # ── 4) Crypto-Assets normalisieren (Spot) ─────────────
+    # ── 4) Crypto-Assets normalisieren (Spot) ─────────────────────
     for a in cr_assets:
         if not a.tradable:
             continue
@@ -231,10 +223,9 @@ def get_all_symbols() -> Dict[str, Any]:
         }
         symbols.append(item)
 
-    # ── 5) Synthetische Crypto-Pairs erzeugen ─────────────
-    # z.B. BTC/USD, BTC/EUR, ETH/USD, ...
+    # ── 5) Synthetische Crypto-Pairs erzeugen ─────────────────────
     for base_symbol in core_crypto_symbols:
-        base = base_symbol.replace("USD", "")  # BTCUSD -> BTC
+        base = base_symbol.replace("USD", "")
         for quote in pair_currencies:
             pair_symbol = f"{base}/{quote}"
             pair_name = f"{base} / {quote}"
@@ -247,14 +238,14 @@ def get_all_symbols() -> Dict[str, Any]:
                 "sector": "Crypto",
                 "market_cap": "N/A",
                 "is_popular": base_symbol in core_crypto_symbols and quote == "USD",
-                "is_tradable": True,  # Du kannst selbst entscheiden, ob du sie wirklich handelst
+                "is_tradable": True,
             }
             symbols.append(item)
 
-    # ── 6) Alphabetisch sortieren ─────────────────────────
+    # ── 6) Alphabetisch sortieren ─────────────────────────────────
     symbols.sort(key=lambda x: x["symbol"])
 
-    # ── 7) Metadaten für spätere Dashboards ───────────────
+    # ── 7) Metadaten für spätere Dashboards ───────────────────────
     asset_classes = sorted(list({s["asset_class"] for s in symbols}))
     types = sorted(list({s["type"] for s in symbols}))
     sectors = sorted(list({s["sector"] for s in symbols}))
