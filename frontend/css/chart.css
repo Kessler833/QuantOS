@@ -55,9 +55,11 @@
 }
 
 /* LightweightCharts Watermark entfernen */
-#lwc-chart > div > table > tr > td > div > div:first-child {
+#lwc-chart a[href*="tradingview"],
+#lwc-chart div[style*="z-index: 2"][style*="position: absolute"][style*="font-size: 11px"] {
   display: none !important;
 }
+
 
 div[style*="position: absolute"][style*="z-index: 1"][style*="pointer-events: none"] {
   display: none !important;
@@ -78,3 +80,4 @@ div[style*="font-size: 11px"][style*="z-index"],
   opacity: 0 !important;
   pointer-events: none !important;
 }
+
