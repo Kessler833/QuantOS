@@ -1,14 +1,8 @@
-// ══════════════════════════════════════════════
-//  QuantOS Cache — LocalStorage Persistence
-//  Reguläres Script, kein ES-Modul
-// ══════════════════════════════════════════════
+// QuantOS Cache – frontend/js/cache.js
+window.QuantCache = (function () {
+  var STORAGE_KEY = 'quantos_v1';
 
-(function () {
-  const CACHE_VERSION = "1.0";
-  const CACHE_KEY     = "quantos_cache";
-
-  const DEFAULTS = {
-    version: CACHE_VERSION,
+  var DEFAULTS = {
     layout: {
       perfSize:     15,
       bodySize:     85,
@@ -18,69 +12,99 @@
       controlsSize: 22
     },
     params: {
-      symbol:     "SPY",
-      interval:   "1d",
-      start:      "2024-01-01",
-      end:        "2025-01-01",
+      symbol:     'SPY',
+      interval:   '1d',
+      start:      '2024-01-01',
+      end:        '2025-01-01',
       capital:    10000,
       sma:        20,
-      strategy:   "",
+      strategy:   '',
       indicators: []
+    },
+    api: {
+      alpacaKey:    '',
+      alpacaSecret: ''
     }
   };
 
-  window.QuantCache = {
+  function deepClone(obj) {
+    return JSON.parse(JSON.stringify(obj));
+  }
 
-    load: function () {
-      try {
-        const raw = localStorage.getItem(CACHE_KEY);
-        if (!raw) return this._clone(DEFAULTS);
-        const cached = JSON.parse(raw);
-        if (cached.version !== CACHE_VERSION) {
-          console.warn("[Cache] Version geändert – Defaults geladen");
-          return this._clone(DEFAULTS);
-        }
-        // Merge: neue Felder aus DEFAULTS auffüllen falls nicht vorhanden
-        return {
-          version: cached.version,
-          layout:  Object.assign({}, DEFAULTS.layout,  cached.layout  || {}),
-          params:  Object.assign({}, DEFAULTS.params,  cached.params  || {})
-        };
-      } catch (e) {
-        console.error("[Cache] Laden fehlgeschlagen:", e);
-        return this._clone(DEFAULTS);
-      }
-    },
+  function load() {
+    try {
+      var raw = localStorage.getItem(STORAGE_KEY);
+      if (!raw) return deepClone(DEFAULTS);
+      var parsed = JSON.parse(raw);
+      return {
+        layout: Object.assign({}, DEFAULTS.layout, parsed.layout || {}),
+        params: Object.assign({}, DEFAULTS.params, parsed.params || {}),
+        api:    Object.assign({}, DEFAULTS.api,    parsed.api    || {})
+      };
+    } catch (e) {
+      console.warn('[QuantCache] load() fehlgeschlagen, nutze Defaults:', e);
+      return deepClone(DEFAULTS);
+    }
+  }
 
-    save: function (state) {
-      try {
-        localStorage.setItem(CACHE_KEY, JSON.stringify(state));
-      } catch (e) {
-        console.error("[Cache] Speichern fehlgeschlagen:", e);
-      }
-    },
+  function save(state) {
+    try {
+      localStorage.setItem(STORAGE_KEY, JSON.stringify(state));
+    } catch (e) {
+      console.warn('[QuantCache] save() fehlgeschlagen:', e);
+    }
+  }
 
-    saveLayout: function (patch) {
-      const s = this.load();
+  function saveLayout(patch) {
+    try {
+      var s = load();
       Object.assign(s.layout, patch);
-      this.save(s);
-    },
+      save(s);
+    } catch (e) {}
+  }
 
-    saveParams: function (patch) {
-      const s = this.load();
+  function saveParams(patch) {
+    try {
+      var s = load();
       Object.assign(s.params, patch);
-      this.save(s);
-    },
+      save(s);
+    } catch (e) {}
+  }
 
-    reset: function () {
-      localStorage.removeItem(CACHE_KEY);
-      console.log("[Cache] Zurückgesetzt");
-      return this._clone(DEFAULTS);
-    },
+  function saveApi(patch) {
+    try {
+      var s = load();
+      Object.assign(s.api, patch);
+      save(s);
+    } catch (e) {}
+  }
 
-    _clone: function (obj) {
-      return JSON.parse(JSON.stringify(obj));
-    }
+  function resetPartial() {
+    try {
+      var s = load();
+      s.layout = deepClone(DEFAULTS.layout);
+      s.params = deepClone(DEFAULTS.params);
+      // API-Keys BEHALTEN
+      save(s);
+      console.log('[QuantCache] Partial Reset – API-Keys behalten');
+    } catch (e) {}
+  }
+
+  function resetFull() {
+    try {
+      localStorage.removeItem(STORAGE_KEY);
+      console.log('[QuantCache] Full Reset – alles gelöscht');
+    } catch (e) {}
+  }
+
+  // Public API
+  return {
+    load:         load,
+    save:         save,
+    saveLayout:   saveLayout,
+    saveParams:   saveParams,
+    saveApi:      saveApi,
+    resetPartial: resetPartial,
+    resetFull:    resetFull
   };
-
 })();

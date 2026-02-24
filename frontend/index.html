@@ -28,6 +28,9 @@
       <li class="nav-item" data-page="optimizer">
         <span class="nav-icon">⚙️</span><span class="nav-label">Optimizer</span>
       </li>
+      <li class="nav-item" data-page="synchro">
+        <span class="nav-icon">🔐</span><span class="nav-label">Data & Synchro</span>
+      </li>
     </ul>
   </nav>
 
@@ -152,31 +155,98 @@
       </div>
     </div>
 
-  </main>
+    <!-- NEU: Data & Synchro Page -->
+    <div id="page-synchro" class="page">
+      <div class="synchro-container">
+        <h1>🔐 Data & Synchro</h1>
+        <p class="subtitle">API-Konfiguration & Cache-Verwaltung</p>
 
-  <!-- Symbol Browser Modal -->
-  <div id="symbol-modal" class="modal">
-    <div class="modal-content">
-      <div class="modal-header">
-        <h3>📊 Symbol auswählen</h3>
-        <span class="modal-close">&times;</span>
-      </div>
-      <div class="modal-body">
-        <input type="text" id="symbol-search" placeholder="Suche Symbol oder Name...">
-        <div id="symbol-list"></div>
+        <!-- Status-Badge -->
+        <div id="api-key-status" style="
+      display:inline-block;
+      font-size:12px;
+      font-weight:600;
+      padding:6px 12px;
+      border-radius:6px;
+      background:#1a1a2e;
+      border:1px solid #2a2a3e;
+      margin-bottom:20px;
+    ">
+          ⚠️ <span style="color:#ef5350;">Keine API-Keys</span>
+        </div>
+
+        <div id="synchro-notification" class="synchro-notification"></div>
+
+        <!-- API Keys Section -->
+        <div class="synchro-section">
+          <h2>📡 Alpaca API</h2>
+          <p class="section-desc">Deine API-Keys werden lokal im Browser gespeichert.</p>
+
+          <div class="synchro-field">
+            <label>API Key</label>
+            <input type="text" id="input-alpaca-key" placeholder="PKXXXXXXXXXX">
+          </div>
+
+          <div class="synchro-field">
+            <label>API Secret</label>
+            <input type="password" id="input-alpaca-secret" placeholder="••••••••••••">
+          </div>
+
+          <button id="btn-save-api" class="synchro-btn primary">💾 API-Keys speichern</button>
+        </div>
+
+        <div class="synchro-divider"></div>
+
+        <!-- Cache Reset Section -->
+        <div class="synchro-section">
+          <h2>🗑️ Cache verwalten</h2>
+          <p class="section-desc">Setze gespeicherte Einstellungen zurück.</p>
+
+          <div class="synchro-reset-grid">
+            <div class="reset-card">
+              <div class="reset-icon">🔄</div>
+              <h3>Partial Reset</h3>
+              <p>Setzt Layout & Parameter zurück.<br><strong>API-Keys bleiben erhalten.</strong></p>
+              <button id="btn-reset-partial" class="synchro-btn secondary">Partial Reset</button>
+            </div>
+
+            <div class="reset-card danger">
+              <div class="reset-icon">⚠️</div>
+              <h3>Full Reset</h3>
+              <p>Löscht <strong>alle</strong> Daten inkl. API-Keys.<br>Nicht rückgängig zu machen!</p>
+              <button id="btn-reset-full" class="synchro-btn danger">Full Reset</button>
+            </div>
+          </div>
+        </div>
+
       </div>
     </div>
-  </div>
 
-  <!-- Scripts (einmalig, korrekte Reihenfolge) -->
-  <script src="../node_modules/split.js/dist/split.js"></script>
-  <script src="https://unpkg.com/lightweight-charts@4.2.0/dist/lightweight-charts.standalone.production.js"></script>
-  <script src="js/cache.js"></script>
-  <script src="js/api.js"></script>
-  <script src="js/symbols.js"></script>
-  <script src="js/home.js"></script>
-  <script src="js/backtest.js"></script>
-  <script src="js/app.js"></script>
+
+    <!-- Symbol Browser Modal -->
+    <div id="symbol-modal" class="modal">
+      <div class="modal-content">
+        <div class="modal-header">
+          <h3>📊 Symbol auswählen</h3>
+          <span class="modal-close">&times;</span>
+        </div>
+        <div class="modal-body">
+          <input type="text" id="symbol-search" placeholder="Suche Symbol oder Name...">
+          <div id="symbol-list"></div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Scripts (einmalig, korrekte Reihenfolge) -->
+    <script src="../node_modules/split.js/dist/split.js"></script>
+    <script src="https://unpkg.com/lightweight-charts@4.2.0/dist/lightweight-charts.standalone.production.js"></script>
+    <script src="js/cache.js"></script>
+    <script src="js/api.js"></script>
+    <script src="js/symbols.js"></script>
+    <script src="js/home.js"></script>
+    <script src="js/backtest.js"></script>
+    <script src="js/synchro.js"></script>
+    <script src="js/app.js"></script>
 
 </body>
 

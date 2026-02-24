@@ -3,6 +3,7 @@ async function init() {
 
   initHome()
   initBacktest(modules)
+  initSynchro()  // ← NEU
 
   document.querySelectorAll('.nav-item').forEach(item => {
     item.addEventListener('click', () => navigateTo(item.dataset.page))

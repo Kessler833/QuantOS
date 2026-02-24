@@ -1,3 +1,7 @@
+// ══════════════════════════════════════════════
+//  Backtest Page – Charts, Controls & Rendering
+// ══════════════════════════════════════════════
+
 let activeIndicators   = []
 let splitInitialized   = false
 let lastEquityData     = null
@@ -331,16 +335,14 @@ function initBacktest(modules) {
     if (val && !activeIndicators.includes(val)) {
       activeIndicators.push(val)
       renderIndicatorTags()
-      _cacheSaveParams()  // [CACHE]
+      _cacheSaveParams()
     }
   })
 
   document.getElementById('btn-run').addEventListener('click', runBacktest)
 
-  // [CACHE] Parameter aus Cache wiederherstellen
   _cacheRestoreParams()
 
-  // [CACHE] Parameter bei Änderung automatisch speichern
   ;['ctrl-symbol','ctrl-interval','ctrl-start','ctrl-end',
     'ctrl-capital','ctrl-sma','ctrl-strategy'].forEach(id => {
     const el = document.getElementById(id)
@@ -363,7 +365,7 @@ function renderIndicatorTags() {
     tag.querySelector('.remove-btn').addEventListener('click', () => {
       activeIndicators = activeIndicators.filter(i => i !== name)
       renderIndicatorTags()
-      _cacheSaveParams()  // [CACHE]
+      _cacheSaveParams()
     })
     container.appendChild(tag)
   })
@@ -375,7 +377,6 @@ function initSplitPanels() {
   applyPerfMinHeight()
   const { minH } = calcPerfConstraints()
 
-  // [CACHE] Gespeicherte Layout-Größen laden
   var cached = _cacheLoad()
   var ly = (cached && cached.layout) ? cached.layout : {}
 
@@ -391,12 +392,10 @@ function initSplitPanels() {
     direction:  'vertical',
     onDrag,
     onDragEnd: (sizes) => {
-      // WICHTIG: Erst Snap ausführen, dann speichern
       snapPerfAfterDrag()
       resizeAllCharts()
       resizePerf()
       
-      // Cache speichern NACH dem Snap (mit Delay damit Snap fertig ist)
       setTimeout(() => {
         try {
           if (typeof QuantCache !== 'undefined' && vertSplit) {
@@ -457,7 +456,6 @@ function initSplitPanels() {
   })
 }
 
-
 function initEmptyCharts() {
   ensureLwcChart()
 
@@ -484,7 +482,40 @@ async function runBacktest() {
   btn.disabled = true
   btn.textContent = '⏳ Lädt...'
 
-  _cacheSaveParams()  // [CACHE]
+  _cacheSaveParams()
+
+  // ── CHECK: API-Keys vorhanden? ────────────────────────
+  const cached = _cacheLoad()
+  const apiKeys = (cached && cached.api) ? cached.api : { alpacaKey: '', alpacaSecret: '' }
+
+  if (!apiKeys.alpacaKey || !apiKeys.alpacaSecret) {
+    document.getElementById('perf-metrics').innerHTML = `
+      <div style="padding:20px;text-align:center;">
+        <div style="font-size:48px;margin-bottom:12px;">🔐</div>
+        <div style="color:#ef5350;font-size:14px;font-weight:600;margin-bottom:8px;">
+          Keine Alpaca API-Keys konfiguriert
+        </div>
+        <div style="color:#6c7086;font-size:12px;margin-bottom:16px;">
+          Bitte trage deine API-Keys ein um Backtests durchzuführen.
+        </div>
+        <button onclick="navigateTo('synchro')" style="
+          background:#7aa2f7;
+          color:#0a0a14;
+          border:none;
+          padding:10px 20px;
+          border-radius:6px;
+          font-size:13px;
+          font-weight:600;
+          cursor:pointer;
+        ">
+          Zu Data & Synchro →
+        </button>
+      </div>
+    `
+    btn.disabled = false
+    btn.textContent = '▶ Backtest starten'
+    return
+  }
 
   const params = {
     symbol:            document.getElementById('ctrl-symbol').value,
@@ -494,7 +525,9 @@ async function runBacktest() {
     capital:           parseFloat(document.getElementById('ctrl-capital').value),
     sma_period:        parseInt(document.getElementById('ctrl-sma').value) || 20,
     strategy:          document.getElementById('ctrl-strategy').value,
-    active_indicators: activeIndicators
+    active_indicators: activeIndicators,
+    alpaca_key:        apiKeys.alpacaKey,
+    alpaca_secret:     apiKeys.alpacaSecret
   }
 
   try {
@@ -503,8 +536,18 @@ async function runBacktest() {
     renderEquity(result.equity)
     renderPerformance(result.performance)
   } catch (err) {
+    let errorMsg = err.message
+    let hint = ''
+    
+    if (err.message.includes('401') || err.message.includes('API-Keys')) {
+      hint = '<div style="margin-top:8px;"><button onclick="navigateTo(\'synchro\')" style="background:#7aa2f7;color:#0a0a14;border:none;padding:8px 16px;border-radius:4px;font-size:12px;cursor:pointer;">API-Keys eintragen →</button></div>'
+    }
+
     document.getElementById('perf-metrics').innerHTML =
-      `<span style="color:#ef5350;font-size:12px;padding:8px;">❌ ${err.message}</span>`
+      `<div style="padding:12px;">
+        <span style="color:#ef5350;font-size:12px;">❌ ${errorMsg}</span>
+        ${hint}
+      </div>`
   }
 
   btn.disabled = false

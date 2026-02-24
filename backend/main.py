@@ -12,8 +12,9 @@ from alpaca.data.requests import StockBarsRequest, CryptoBarsRequest
 from alpaca.data.timeframe import TimeFrame, TimeFrameUnit
 from alpaca.data.enums import Adjustment, DataFeed
 
-from data import config
 from data.symbols import get_all_symbols
+# ← config-Import IST NICHT MEHR DA!
+
 
 
 app = FastAPI()
@@ -25,9 +26,15 @@ app.add_middleware(
     allow_headers=["*"],
 )
 
-# ── ALPACA CLIENTS ───────────────────────────────────────
-_stock_client  = StockHistoricalDataClient(config.ALPACA_API_KEY, config.ALPACA_SECRET_KEY)
-_crypto_client = CryptoHistoricalDataClient()
+
+# ── FALLBACK CLIENTS (aus config.py) ────────────────────
+try:
+    _default_stock_client  = StockHistoricalDataClient(config.ALPACA_API_KEY, config.ALPACA_SECRET_KEY)
+    _default_crypto_client = CryptoHistoricalDataClient()
+except Exception:
+    _default_stock_client  = None
+    _default_crypto_client = CryptoHistoricalDataClient()
+
 
 SYMBOL_MAP = {
     "^GSPC": "SPY",  "^SPX": "SPY",   "^DJI":  "DIA",
@@ -45,9 +52,11 @@ TIMEFRAME_MAP = {
     "1m":  TimeFrame.Minute,
 }
 
+
 # ── HILFSFUNKTION ────────────────────────────────────────
 def to_list(series):
     return [None if pd.isna(x) else round(float(x), 5) for x in series]
+
 
 # ── MODULE LADEN ─────────────────────────────────────────
 def load_modules(folder):
@@ -60,8 +69,10 @@ def load_modules(folder):
             modules[file.stem] = getattr(mod, file.stem)
     return modules
 
+
 indicators = load_modules("indicators")
 strategies = load_modules("strategies")
+
 
 # ── MODELS ───────────────────────────────────────────────
 class BacktestRequest(BaseModel):
@@ -73,11 +84,15 @@ class BacktestRequest(BaseModel):
     sma_period:        int       = 20
     strategy:          str       = ""
     active_indicators: list[str] = []
+    alpaca_key:        str       = ""  # ← aus Frontend Cache
+    alpaca_secret:     str       = ""  # ← aus Frontend Cache
+
 
 # ── ENDPOINTS ────────────────────────────────────────────
 @app.get("/api/health")
 def health():
     return {"status": "running"}
+
 
 @app.get("/api/modules")
 def get_modules():
@@ -86,19 +101,32 @@ def get_modules():
         "strategies": list(strategies.keys())
     }
 
+
 @app.get("/api/symbols")
 def list_symbols():
-    """
-    Liefert alle verfügbaren Symbole (Equities + Crypto + Pairs) für das Frontend.
-    """
     try:
         return get_all_symbols()
     except Exception as e:
         raise HTTPException(status_code=500, detail=str(e))
 
+
 @app.post("/api/backtest")
 def run_backtest(req: BacktestRequest):
     try:
+        # ── DYNAMISCHE ALPACA CLIENTS ────────────────────
+        # Priorität: Keys aus Frontend → Fallback config.py → Error
+        if req.alpaca_key and req.alpaca_secret:
+            stock_client  = StockHistoricalDataClient(req.alpaca_key, req.alpaca_secret)
+            crypto_client = CryptoHistoricalDataClient()
+        elif _default_stock_client:
+            stock_client  = _default_stock_client
+            crypto_client = _default_crypto_client
+        else:
+            raise HTTPException(
+                status_code=401,
+                detail="Keine Alpaca API-Keys konfiguriert. Bitte in 'Data & Synchro' eintragen."
+            )
+
         mapped   = SYMBOL_MAP.get(req.symbol, req.symbol)
         tf       = TIMEFRAME_MAP.get(req.interval, TimeFrame.Day)
         start_dt = datetime.strptime(req.start, "%Y-%m-%d")
@@ -109,7 +137,7 @@ def run_backtest(req: BacktestRequest):
                 symbol_or_symbols=mapped, timeframe=tf,
                 start=start_dt, end=end_dt
             )
-            bars = _crypto_client.get_crypto_bars(bars_req)
+            bars = crypto_client.get_crypto_bars(bars_req)
         else:
             bars_req = StockBarsRequest(
                 symbol_or_symbols=mapped, timeframe=tf,
@@ -117,7 +145,7 @@ def run_backtest(req: BacktestRequest):
                 feed=DataFeed.SIP,
                 adjustment=Adjustment.ALL
             )
-            bars = _stock_client.get_stock_bars(bars_req)
+            bars = stock_client.get_stock_bars(bars_req)
 
         df = bars.df
         if isinstance(df.index, pd.MultiIndex):
@@ -157,8 +185,8 @@ def run_backtest(req: BacktestRequest):
         for i in range(len(df)):
             eq = float(equity_vals[i])
             if position_vals[i] == 1 and close_vals[i] > 0:
-                equity_high_list.append(eq * float(high_vals[i])  / float(close_vals[i]))
-                equity_low_list.append( eq * float(low_vals[i])   / float(close_vals[i]))
+                equity_high_list.append(eq * float(high_vals[i]) / float(close_vals[i]))
+                equity_low_list.append( eq * float(low_vals[i])  / float(close_vals[i]))
             else:
                 equity_high_list.append(eq)
                 equity_low_list.append(eq)
