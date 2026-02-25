@@ -6,19 +6,13 @@
 
   <!-- Core styles -->
   <link rel="stylesheet" href="core/base.css">
+  <link rel="stylesheet" href="core/components.css">
 
   <!-- Page styles -->
   <link rel="stylesheet" href="pages/home/home.css">
   <link rel="stylesheet" href="pages/backtest/backtest.css">
   <link rel="stylesheet" href="pages/market/market.css">
   <link rel="stylesheet" href="pages/synchro/synchro.css">
-
-  <!-- Legacy styles (noch nicht migriert) -->
-  <link rel="stylesheet" href="css/sidebar.css">
-  <link rel="stylesheet" href="css/controls.css">
-  <link rel="stylesheet" href="css/chart.css">
-  <link rel="stylesheet" href="css/modal.css">
-  <link rel="stylesheet" href="css/utilities.css">
 
   <script src="https://cdn.plot.ly/plotly-latest.min.js"></script>
 </head>
@@ -56,7 +50,6 @@
 
     <!-- HOME -->
     <div id="page-home" class="page active">
-      <!-- injiziert von home.js -->
     </div>
 
     <!-- BACKTEST -->
@@ -146,7 +139,6 @@
 
     <!-- MARKET -->
     <div id="page-market" class="page">
-      <!-- injiziert von market.js -->
     </div>
 
     <!-- MARKOV -->
@@ -165,7 +157,6 @@
 
     <!-- SYNCHRO -->
     <div id="page-synchro" class="page">
-      <!-- injiziert von synchro.js -->
     </div>
 
   </main>
@@ -189,19 +180,19 @@
   <script src="https://unpkg.com/lightweight-charts@4.2.0/dist/lightweight-charts.standalone.production.js"></script>
 
   <!-- Core -->
-  <script src="js/cache.js"></script>
+  <script src="core/cache.js"></script>
   <script src="core/router.js"></script>
   <script src="core/api.js"></script>
-  <script src="js/symbols.js"></script>
+  <script src="core/symbols.js"></script>
 
   <!-- Pages -->
   <script src="pages/home/home.js"></script>
+  <script src="pages/backtest/backtest.js"></script>
   <script src="pages/market/market.js"></script>
   <script src="pages/synchro/synchro.js"></script>
-  <script src="js/backtest.js"></script>
 
-  <!-- App init -->
-  <script src="js/app.js"></script>
+  <!-- App init (zuletzt!) -->
+  <script src="core/app.js"></script>
 
 </body>
 </html>

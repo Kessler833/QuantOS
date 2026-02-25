@@ -1,0 +1,694 @@
+/* ══════════════════════════════════════════════════════════
+   SHARED COMPONENTS
+   Sidebar, Charts, Controls, Modals, Utilities
+   ══════════════════════════════════════════════════════════ */
+
+/* ── SIDEBAR ────────────────────────────────────────────── */
+/* Inhalt von sidebar.css hier einfügen */
+
+/* ══════════════════════════════════════════════════════════
+   SIDEBAR & NAVIGATION
+   ══════════════════════════════════════════════════════════ */
+
+#sidebar {
+  width: 180px;
+  min-width: 180px;
+  height: 100vh;
+  background: #0a0a14;
+  display: flex;
+  flex-direction: column;
+  border-right: 1px solid #1e1e30;
+  transition: width 0.2s, min-width 0.2s;
+  overflow: hidden;
+}
+
+#sidebar.collapsed { 
+  width: 52px; 
+  min-width: 52px; 
+}
+
+#logo {
+  padding: 20px 16px;
+  font-size: 15px;
+  font-weight: 700;
+  color: #7aa2f7;
+  border-bottom: 1px solid #1e1e30;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  white-space: nowrap;
+  overflow: hidden;
+}
+
+#sidebar.collapsed #logo { 
+  justify-content: center; 
+  padding: 20px 0; 
+}
+
+.logo-icon { 
+  font-size: 18px; 
+  flex-shrink: 0; 
+}
+
+#sidebar.collapsed .logo-text,
+#sidebar.collapsed .nav-label { 
+  display: none; 
+}
+
+#nav-links { 
+  list-style: none; 
+  padding: 12px 0; 
+  flex: 1; 
+}
+
+.nav-item {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 11px 16px;
+  cursor: pointer;
+  color: #6c7086;
+  border-left: 3px solid transparent;
+  transition: all 0.15s;
+  white-space: nowrap;
+  overflow: hidden;
+}
+
+#sidebar.collapsed .nav-item { 
+  justify-content: center; 
+  padding: 12px 0; 
+}
+
+.nav-item:hover { 
+  color: #cdd6f4; 
+  background: #1a1a2e; 
+}
+
+.nav-item.active { 
+  color: #7aa2f7; 
+  border-left-color: #7aa2f7; 
+  background: #1a1a2e; 
+}
+
+.nav-icon { 
+  font-size: 15px; 
+  flex-shrink: 0; 
+}
+
+/* ── CHART STYLES ───────────────────────────────────────── */
+/* Inhalt von chart.css hier einfügen */
+
+/* ══════════════════════════════════════════════════════════
+   CHART & EQUITY PANELS
+   ══════════════════════════════════════════════════════════ */
+
+#chart-panel, #equity-panel {
+  display: flex;
+  flex-direction: column;
+  overflow: hidden;
+  min-height: 0;
+}
+
+.panel-header {
+  background: #0d0d1e;
+  color: #6c7086;
+  padding: 7px 14px;
+  font-size: 11px;
+  font-weight: 600;
+  letter-spacing: 0.5px;
+  border-bottom: 1px solid #1e1e30;
+  flex-shrink: 0;
+}
+
+.panel-content {
+  flex: 1;
+  overflow: hidden;
+  padding: 6px 6px 0 6px;
+  display: flex;
+  flex-direction: column;
+  min-height: 0;
+}
+
+#lwc-chart, #plotly-equity {
+  flex: 1;
+  width: 100%;
+  min-height: 0;
+}
+
+.plot-legend {
+  flex-shrink: 0;
+  display: flex;
+  flex-wrap: wrap;
+  gap: 4px 14px;
+  padding: 4px 6px;
+  border-top: 1px solid #1e1e30;
+  background: #0d0d1e;
+}
+
+.legend-item {
+  display: flex;
+  align-items: center;
+  gap: 5px;
+  font-size: 10px;
+  color: #9a9ab0;
+  white-space: nowrap;
+}
+
+/* LightweightCharts Watermark entfernen */
+#lwc-chart a[href*="tradingview"],
+#lwc-chart div[style*="z-index: 2"][style*="position: absolute"][style*="font-size: 11px"] {
+  display: none !important;
+}
+
+
+div[style*="position: absolute"][style*="z-index: 1"][style*="pointer-events: none"] {
+  display: none !important;
+}
+
+.tv-lightweight-charts__watermark {
+  display: none !important;
+}
+
+a[href*="tradingview.com"],
+a[href*="lightweight-charts"],
+div[style*="left: 0"][style*="color: rgba"],
+div[style*="font-size: 11px"][style*="z-index"],
+#lwc-chart a,
+#lwc-chart > div > div:first-child {
+  display: none !important;
+  visibility: hidden !important;
+  opacity: 0 !important;
+  pointer-events: none !important;
+}
+
+
+
+/* ── CONTROLS ───────────────────────────────────────────── */
+/* Inhalt von controls.css hier einfügen */
+
+/* ══════════════════════════════════════════════════════════
+   CONTROLS PANEL & INPUT ELEMENTS
+   ══════════════════════════════════════════════════════════ */
+
+#controls-panel {
+  background: #0a0a14;
+  border-left: 1px solid #1e1e30;
+  display: flex;
+  flex-direction: column;
+  padding: 14px;
+  overflow-y: auto;
+  overflow-x: hidden;
+  min-width: 140px;
+  min-height: 0;
+}
+
+#controls-panel::-webkit-scrollbar { 
+  width: 10px; 
+}
+
+#controls-panel::-webkit-scrollbar-track { 
+  background: #0d0d1e; 
+  border-radius: 5px; 
+}
+
+#controls-panel::-webkit-scrollbar-thumb { 
+  background: #2a2a3e; 
+  border-radius: 5px; 
+}
+
+#controls-panel::-webkit-scrollbar-thumb:hover { 
+  background: #7aa2f7; 
+}
+
+.ctrl-section { 
+  display: flex; 
+  flex-direction: column; 
+  gap: 7px; 
+  padding-bottom: 14px; 
+}
+
+.ctrl-section-label {
+  font-size: 9px;
+  font-weight: 700;
+  color: #3a3a5e;
+  letter-spacing: 1px;
+  padding-bottom: 6px;
+  border-bottom: 1px solid #1e1e30;
+  margin-bottom: 2px;
+}
+
+.ctrl-row { 
+  display: flex; 
+  flex-direction: column; 
+  gap: 3px; 
+}
+
+.ctrl-row label { 
+  font-size: 10px; 
+  color: #6c7086; 
+}
+
+.ctrl-row-inline { 
+  display: flex; 
+  gap: 6px; 
+  align-items: center; 
+}
+
+#controls-panel input,
+#controls-panel select {
+  width: 100%;
+  background: #1a1a2e;
+  border: 1px solid #2a2a3e;
+  color: #cdd6f4;
+  padding: 6px 8px;
+  border-radius: 5px;
+  font-size: 12px;
+}
+
+#controls-panel input:focus,
+#controls-panel select:focus { 
+  outline: none; 
+  border-color: #7aa2f7; 
+}
+
+.ctrl-divider { 
+  height: 1px; 
+  background: #1e1e30; 
+  margin: 4px 0 14px 0; 
+}
+
+#btn-add-indicator {
+  background: #1a1a2e;
+  border: 1px solid #2a2a3e;
+  color: #cdd6f4;
+  padding: 6px 10px;
+  border-radius: 5px;
+  cursor: pointer;
+  font-size: 12px;
+  flex-shrink: 0;
+}
+
+#active-indicators { 
+  display: flex; 
+  flex-direction: column; 
+  gap: 5px; 
+  margin-top: 4px; 
+}
+
+.indicator-tag {
+  background: #1a1a2e;
+  border: 1px solid #2a2a3e;
+  color: #7aa2f7;
+  padding: 4px 8px;
+  border-radius: 4px;
+  font-size: 11px;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+}
+
+.indicator-tag .remove-btn { 
+  cursor: pointer; 
+  color: #3a3a5e; 
+}
+
+.indicator-tag .remove-btn:hover { 
+  color: #ef5350; 
+}
+
+#btn-run {
+  background: #7aa2f7;
+  color: #0a0a14;
+  border: none;
+  padding: 10px;
+  border-radius: 6px;
+  font-weight: 700;
+  cursor: pointer;
+  font-size: 13px;
+  transition: background 0.2s;
+  margin-top: 8px;
+  flex-shrink: 0;
+}
+
+#btn-run:hover { 
+  background: #5a82d7; 
+}
+
+#btn-run:disabled { 
+  background: #2a2a3e; 
+  color: #555; 
+  cursor: not-allowed; 
+}
+
+#btn-browse-symbols {
+  background: #1a1a2e;
+  border: 1px solid #2a2a3e;
+  color: #7aa2f7;
+  padding: 6px 10px;
+  border-radius: 5px;
+  cursor: pointer;
+  font-size: 14px;
+  flex-shrink: 0;
+  transition: all 0.15s;
+}
+
+#btn-browse-symbols:hover {
+  border-color: #7aa2f7;
+  background: #1e1e2e;
+}
+
+/* ── MODALS ─────────────────────────────────────────────── */
+/* Inhalt von modal.css hier einfügen */
+
+/* ══════════════════════════════════════════════════════════
+   SYMBOL MODAL
+   ══════════════════════════════════════════════════════════ */
+
+.modal {
+  display: none;
+  position: fixed;
+  z-index: 1000;
+  left: 0;
+  top: 0;
+  width: 100%;
+  height: 100%;
+  background: rgba(0, 0, 0, 0.75);
+  align-items: center;
+  justify-content: center;
+}
+
+.modal-content {
+  background: #0a0a14;
+  border: 1px solid #2a2a3e;
+  border-radius: 10px;
+  width: 90%;
+  max-width: 700px;
+  max-height: 80vh;
+  display: flex;
+  flex-direction: column;
+  box-shadow: 0 8px 32px rgba(0, 0, 0, 0.5);
+}
+
+.modal-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 16px 20px;
+  border-bottom: 1px solid #1e1e30;
+  gap: 8px;
+}
+
+.modal-header h3 {
+  font-size: 16px;
+  color: #cdd6f4;
+  font-weight: 600;
+}
+
+.modal-close {
+  background: transparent;
+  border: none;
+  color: #6c7086;
+  font-size: 24px;
+  cursor: pointer;
+  padding: 0;
+  width: 32px;
+  height: 32px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  border-radius: 6px;
+  transition: all 0.2s ease;
+  line-height: 1;
+  margin-left: auto;
+  font-family: Arial, sans-serif;
+}
+
+.modal-close:hover {
+  background: #1a1a2e;
+  color: #ef5350;
+}
+
+.modal-body {
+  padding: 16px 20px;
+  overflow: hidden;
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+  flex: 1;
+  min-height: 0;
+}
+
+#symbol-search {
+  width: 100%;
+  background: #1a1a2e;
+  border: 1px solid #2a2a3e;
+  color: #cdd6f4;
+  padding: 10px 12px;
+  border-radius: 6px;
+  font-size: 13px;
+}
+
+#symbol-search:focus {
+  outline: none;
+  border-color: #7aa2f7;
+}
+
+#symbol-list {
+  flex: 1;
+  overflow-y: auto;
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  min-height: 0;
+  padding-right: 8px;
+}
+
+#symbol-list::-webkit-scrollbar { 
+  width: 10px; 
+}
+
+#symbol-list::-webkit-scrollbar-track { 
+  background: #0d0d1e; 
+  border-radius: 5px; 
+}
+
+#symbol-list::-webkit-scrollbar-thumb { 
+  background: #2a2a3e; 
+  border-radius: 5px; 
+}
+
+#symbol-list::-webkit-scrollbar-thumb:hover { 
+  background: #7aa2f7; 
+}
+
+#symbol-list > .symbol-row { 
+  margin-bottom: 6px; 
+}
+
+.symbol-row {
+  background: #1a1a2e;
+  border: 1px solid #2a2a3e;
+  border-radius: 6px;
+  padding: 10px 14px;
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  cursor: pointer;
+  transition: all 0.15s;
+}
+
+.symbol-row:hover {
+  border-color: #7aa2f7;
+  background: #1e1e2e;
+}
+
+.symbol-info { 
+  display: flex; 
+  flex-direction: column; 
+  gap: 3px; 
+}
+
+.symbol-ticker { 
+  font-size: 13px; 
+  font-weight: 700; 
+  color: #7aa2f7; 
+}
+
+.symbol-name { 
+  font-size: 11px; 
+  color: #6c7086; 
+}
+
+.symbol-exchange {
+  font-size: 10px;
+  color: #3a3a5e;
+  background: #0d0d1e;
+  padding: 3px 8px;
+  border-radius: 4px;
+  font-weight: 600;
+  letter-spacing: 0.5px;
+}
+
+.loading, .error, .no-results {
+  text-align: center;
+  padding: 40px 20px;
+  color: #6c7086;
+  font-size: 13px;
+}
+
+.error { 
+  color: #ef5350; 
+}
+
+.symbol-group { 
+  display: flex; 
+  flex-direction: column; 
+  margin-bottom: 8px; 
+}
+
+.group-header {
+  background: #1a1a2e;
+  border: 1px solid #2a2a3e;
+  border-radius: 6px;
+  padding: 10px 14px;
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  cursor: pointer;
+  transition: all 0.15s;
+}
+
+.group-header:hover { 
+  border-color: #7aa2f7; 
+  background: #1e1e2e; 
+}
+
+.group-icon { 
+  font-size: 16px; 
+}
+
+.group-title { 
+  flex: 1; 
+  font-size: 13px; 
+  font-weight: 600; 
+  color: #cdd6f4; 
+}
+
+.group-count {
+  font-size: 11px;
+  color: #6c7086;
+  background: #0d0d1e;
+  padding: 2px 8px;
+  border-radius: 10px;
+}
+
+.group-toggle {
+  font-size: 12px;
+  color: #6c7086;
+  transition: transform 0.2s;
+}
+
+.group-content {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  margin-top: 6px;
+  padding-left: 12px;
+}
+
+.group-symbols {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  padding: 6px 0;
+}
+
+.view-toggle {
+  background: #1a1a2e;
+  border: 1px solid #2a2a3e;
+  color: #7aa2f7;
+  padding: 6px 12px;
+  border-radius: 5px;
+  cursor: pointer;
+  font-size: 11px;
+  font-weight: 600;
+  transition: all 0.15s;
+}
+
+.view-toggle:hover { 
+  border-color: #7aa2f7; 
+  background: #1e1e2e; 
+}
+
+.sort-toggle {
+  background: #1a1a2e;
+  border: 1px solid #2a2a3e;
+  color: #cdd6f4;
+  padding: 6px 12px;
+  border-radius: 6px;
+  cursor: pointer;
+  font-size: 12px;
+  font-weight: 500;
+  transition: all 0.2s ease;
+  white-space: nowrap;
+  display: flex;
+  align-items: center;
+  gap: 6px;
+}
+
+.sort-toggle::before { 
+  content: 'Sort by: '; 
+  color: #6c7086; 
+  font-weight: 400; 
+}
+
+.sort-toggle:hover { 
+  border-color: #7aa2f7; 
+  background: #1e1e2e; 
+  transform: translateY(-1px); 
+}
+
+.sort-toggle:active { 
+  transform: translateY(0); 
+}
+
+/* ── UTILITIES ──────────────────────────────────────────── */
+/* Inhalt von utilities.css hier einfügen */
+
+/* ══════════════════════════════════════════════════════════
+   UTILITIES & MISC
+   ══════════════════════════════════════════════════════════ */
+
+.gutter { 
+  background: #0d0d1e; 
+  transition: background 0.2s; 
+  z-index: 1; 
+}
+
+.gutter:hover { 
+  background: #7aa2f7; 
+}
+
+.gutter-horizontal { 
+  cursor: col-resize; 
+  width: 5px !important; 
+}
+
+.gutter-vertical { 
+  cursor: row-resize; 
+  height: 5px !important; 
+}
+
+.loading-spinner {
+  text-align: center;
+  padding: 12px;
+  color: #6c7086;
+  font-size: 12px;
+  font-style: italic;
+}
+
+.scroll-trigger {
+  display: flex;
+  justify-content: center;
+  padding: 8px;
+}
