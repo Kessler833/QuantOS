@@ -26,3 +26,20 @@ async function apiBacktest(params) {
   }
   return r.json()
 }
+
+async function apiHeatmap(params) {
+  const r = await fetch(`${BASE}/api/heatmap`, {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify(params)
+  })
+  if (!r.ok) {
+    let detail = `Server Fehler (${r.status})`
+    try {
+      const err = await r.json()
+      detail = err.detail || detail
+    } catch {}
+    throw new Error(detail)
+  }
+  return r.json()
+}

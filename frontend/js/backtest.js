@@ -477,6 +477,7 @@ function initEmptyCharts() {
 }
 
 // ── BACKTEST ──────────────────────────────────────────────
+// ── BACKTEST ──────────────────────────────────────────────
 async function runBacktest() {
   const btn = document.getElementById('btn-run')
   btn.disabled = true
@@ -490,67 +491,34 @@ async function runBacktest() {
 
   if (!apiKeys.alpacaKey || !apiKeys.alpacaSecret) {
     document.getElementById('perf-metrics').innerHTML = `
-    <div style="
-      display: flex;
-      flex-direction: column;
-      align-items: center;
-      justify-content: center;
-      height: 100%;
-      padding: 12px;
-      text-align: center;
-      overflow: hidden;
-    ">
-      <div style="font-size: clamp(24px, 8vw, 48px); margin-bottom: 8px;">🔐</div>
-      <div style="
-        color: #ef5350;
-        font-size: clamp(10px, 2vw, 14px);
-        font-weight: 600;
-        margin-bottom: 6px;
-        line-height: 1.3;
-      ">
-        Keine API-Keys
+      <div class="perf-metric-inline">
+        <span class="label">STATUS</span>
+        <span class="value">🔐</span>
+        <span class="value sub negative">Keine API-Keys</span>
       </div>
-      <div style="
-        color: #6c7086;
-        font-size: clamp(8px, 1.5vw, 12px);
-        margin-bottom: 10px;
-        line-height: 1.4;
-        max-width: 90%;
-      ">
-        Bitte Keys in Data & Synchro eintragen
+      <div class="perf-metric-inline" onclick="navigateTo('synchro')" style="cursor:pointer">
+        <span class="label">AKTION</span>
+        <span class="value" style="color:#7aa2f7">Data &amp; Synchro</span>
+        <span class="value sub" style="color:#7aa2f7">→ Eintragen</span>
       </div>
-      <button onclick="navigateTo('synchro')" style="
-        background: #7aa2f7;
-        color: #0a0a14;
-        border: none;
-        padding: clamp(6px, 1.5vw, 10px) clamp(12px, 3vw, 20px);
-        border-radius: 6px;
-        font-size: clamp(9px, 1.8vw, 13px);
-        font-weight: 600;
-        cursor: pointer;
-        white-space: nowrap;
-      ">
-        Zu Data & Synchro →
-      </button>
-    </div>
-  `
+    `
+    setTimeout(resizePerf, 0)
     btn.disabled = false
     btn.textContent = '▶ Backtest starten'
     return
   }
 
-
   const params = {
-    symbol: document.getElementById('ctrl-symbol').value,
-    interval: document.getElementById('ctrl-interval').value,
-    start: document.getElementById('ctrl-start').value,
-    end: document.getElementById('ctrl-end').value,
-    capital: parseFloat(document.getElementById('ctrl-capital').value),
-    sma_period: parseInt(document.getElementById('ctrl-sma').value) || 20,
-    strategy: document.getElementById('ctrl-strategy').value,
+    symbol:            document.getElementById('ctrl-symbol').value,
+    interval:          document.getElementById('ctrl-interval').value,
+    start:             document.getElementById('ctrl-start').value,
+    end:               document.getElementById('ctrl-end').value,
+    capital:           parseFloat(document.getElementById('ctrl-capital').value),
+    sma_period:        parseInt(document.getElementById('ctrl-sma').value) || 20,
+    strategy:          document.getElementById('ctrl-strategy').value,
     active_indicators: activeIndicators,
-    alpaca_key: apiKeys.alpacaKey,
-    alpaca_secret: apiKeys.alpacaSecret
+    alpaca_key:        apiKeys.alpacaKey,
+    alpaca_secret:     apiKeys.alpacaSecret
   }
 
   try {
@@ -559,23 +527,28 @@ async function runBacktest() {
     renderEquity(result.equity)
     renderPerformance(result.performance)
   } catch (err) {
-    let errorMsg = err.message
-    let hint = ''
+    const isAuthError = err.message.includes('401') || err.message.includes('API-Keys')
 
-    if (err.message.includes('401') || err.message.includes('API-Keys')) {
-      hint = '<div style="margin-top:8px;"><button onclick="navigateTo(\'synchro\')" style="background:#7aa2f7;color:#0a0a14;border:none;padding:8px 16px;border-radius:4px;font-size:12px;cursor:pointer;">API-Keys eintragen →</button></div>'
-    }
-
-    document.getElementById('perf-metrics').innerHTML =
-      `<div style="padding:12px;">
-        <span style="color:#ef5350;font-size:12px;">❌ ${errorMsg}</span>
-        ${hint}
-      </div>`
+    document.getElementById('perf-metrics').innerHTML = `
+      <div class="perf-metric-inline">
+        <span class="label">FEHLER</span>
+        <span class="value negative">❌</span>
+        <span class="value sub negative">${err.message.substring(0, 30)}</span>
+      </div>
+      ${isAuthError ? `
+      <div class="perf-metric-inline" onclick="navigateTo('synchro')" style="cursor:pointer">
+        <span class="label">AKTION</span>
+        <span class="value" style="color:#7aa2f7">API-Keys</span>
+        <span class="value sub" style="color:#7aa2f7">→ Eintragen</span>
+      </div>` : ''}
+    `
+    setTimeout(resizePerf, 0)
   }
 
   btn.disabled = false
   btn.textContent = '▶ Backtest starten'
 }
+
 
 // ── RENDER CHART (Lightweight Charts) ────────────────────
 function renderChart(data) {

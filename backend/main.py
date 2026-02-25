@@ -5,20 +5,16 @@ import pandas as pd
 import numpy as np
 import importlib
 from pathlib import Path
-from datetime import datetime
-
+from datetime import datetime, timedelta
 
 from alpaca.data.historical import StockHistoricalDataClient, CryptoHistoricalDataClient
 from alpaca.data.requests import StockBarsRequest, CryptoBarsRequest
 from alpaca.data.timeframe import TimeFrame, TimeFrameUnit
 from alpaca.data.enums import Adjustment, DataFeed
 
-
 from data.symbols import get_all_symbols
 
-
 app = FastAPI()
-
 
 app.add_middleware(
     CORSMiddleware,
@@ -27,21 +23,15 @@ app.add_middleware(
     allow_headers=["*"],
 )
 
-
-
-# ── FALLBACK CLIENTS (keine Hardcoded Keys mehr) ─────────
-_default_stock_client  = None  # Nur mit Frontend-Keys
+_default_stock_client  = None
 _default_crypto_client = CryptoHistoricalDataClient()
 
-
-
 SYMBOL_MAP = {
-    "^GSPC": "SPY",  "^SPX": "SPY",   "^DJI":  "DIA",
+    "^GSPC": "SPY",  "^SPX": "SPY",  "^DJI":  "DIA",
     "^IXIC": "QQQ",  "^NDX": "QQQ",
     "BTC-USD": "BTC/USD", "ETH-USD": "ETH/USD",
 }
 CRYPTO_SYMBOLS = {"BTC/USD", "ETH/USD", "SOL/USD", "LTC/USD", "DOGE/USD"}
-
 
 TIMEFRAME_MAP = {
     "1d":  TimeFrame.Day,
@@ -52,15 +42,9 @@ TIMEFRAME_MAP = {
     "1m":  TimeFrame.Minute,
 }
 
-
-
-# ── HILFSFUNKTION ────────────────────────────────────────
 def to_list(series):
     return [None if pd.isna(x) else round(float(x), 5) for x in series]
 
-
-
-# ── MODULE LADEN ─────────────────────────────────────────
 def load_modules(folder):
     modules = {}
     for file in Path(folder).glob("*.py"):
@@ -71,11 +55,8 @@ def load_modules(folder):
             modules[file.stem] = getattr(mod, file.stem)
     return modules
 
-
-
 indicators = load_modules("indicators")
 strategies = load_modules("strategies")
-
 
 
 # ── MODELS ───────────────────────────────────────────────
@@ -91,47 +72,37 @@ class BacktestRequest(BaseModel):
     alpaca_key:        str       = ""
     alpaca_secret:     str       = ""
 
+class HeatmapRequest(BaseModel):
+    alpaca_key:    str = ""
+    alpaca_secret: str = ""
 
 
 # ── ENDPOINTS ────────────────────────────────────────────
 @app.post("/api/health")
 async def health_check(request: dict):
-    """Health check mit API-Key Validierung"""
     try:
-        alpaca_key = request.get("alpaca_key", "")
+        alpaca_key    = request.get("alpaca_key", "")
         alpaca_secret = request.get("alpaca_secret", "")
-        
         if not alpaca_key or not alpaca_secret:
             return {"status": "ok", "alpaca_valid": False}
-        
-        # Alpaca API testen
         try:
             from alpaca.trading.client import TradingClient
-            client = TradingClient(alpaca_key, alpaca_secret, paper=True)
+            client  = TradingClient(alpaca_key, alpaca_secret, paper=True)
             account = client.get_account()
-            
-            return {
-                "status": "ok",
-                "alpaca_valid": True,
-                "account_status": account.status
-            }
+            return {"status": "ok", "alpaca_valid": True, "account_status": account.status}
         except Exception as e:
             print(f"Alpaca validation error: {e}")
             return {"status": "ok", "alpaca_valid": False}
-            
     except Exception as e:
         return {"status": "error", "message": str(e)}
-
-
 
 
 @app.get("/api/modules")
 def get_modules():
     return {
         "indicators": list(indicators.keys()),
-        "strategies": list(strategies.keys())
+        "strategies":  list(strategies.keys())
     }
-
 
 
 @app.get("/api/symbols")
@@ -142,11 +113,99 @@ def list_symbols(alpaca_key: str = "", alpaca_secret: str = ""):
         raise HTTPException(status_code=500, detail=str(e))
 
 
+@app.post("/api/heatmap")
+def get_heatmap(req: HeatmapRequest):
+    try:
+        if not req.alpaca_key or not req.alpaca_secret:
+            raise HTTPException(status_code=401, detail="Keine API-Keys konfiguriert.")
+
+        stock_client = StockHistoricalDataClient(req.alpaca_key, req.alpaca_secret)
+
+        # ── Tradable US Equity Symbole laden ─────────────
+        from alpaca.trading.client import TradingClient
+        from alpaca.trading.requests import GetAssetsRequest
+        from alpaca.trading.enums import AssetClass, AssetStatus
+
+        trading_client = TradingClient(req.alpaca_key, req.alpaca_secret, paper=True)
+        assets = trading_client.get_all_assets(GetAssetsRequest(
+            asset_class=AssetClass.US_EQUITY,
+            status=AssetStatus.ACTIVE
+        ))
+        symbols = [
+            a.symbol for a in assets
+            if a.tradable and '/' not in a.symbol and '.' not in a.symbol and len(a.symbol) <= 5
+        ]
+
+        # ── 1 Jahr Daily Bars in Batches holen ───────────
+        start_dt = datetime.now() - timedelta(days=366)
+        end_dt   = datetime.now() - timedelta(minutes=80)
+        all_bars = {}
+
+        for i in range(0, len(symbols), 500):
+            batch = symbols[i:i + 500]
+            try:
+                bars_req = StockBarsRequest(
+                    symbol_or_symbols=batch,
+                    timeframe=TimeFrame.Day,
+                    start=start_dt,
+                    end=end_dt,
+                    feed=DataFeed.SIP,
+                    adjustment=Adjustment.ALL
+                )
+                bars_df = stock_client.get_stock_bars(bars_req).df
+                if bars_df.empty:
+                    continue
+                if isinstance(bars_df.index, pd.MultiIndex):
+                    for sym in batch:
+                        try:
+                            sym_df = bars_df.xs(sym, level='symbol')
+                            if len(sym_df) >= 2:
+                                all_bars[sym] = sym_df
+                        except KeyError:
+                            pass
+                print(f"[Heatmap] Batch {i//500 + 1}: {len(all_bars)} Symbole geladen")
+            except Exception as e:
+                print(f"[Heatmap] Batch {i} error: {e}")
+                continue
+
+        # ── % Change pro Timeframe berechnen ─────────────
+        cutoffs = {
+            '1D': datetime.now() - timedelta(days=2),
+            '1W': datetime.now() - timedelta(days=7),
+            '1M': datetime.now() - timedelta(days=30),
+            '1Y': datetime.now() - timedelta(days=365),
+        }
+
+        results = {}
+        for sym, df in all_bars.items():
+            last_close = float(df['close'].iloc[-1])
+            changes    = {}
+            for tf, cutoff in cutoffs.items():
+                try:
+                    ts    = pd.Timestamp(cutoff).tz_localize('UTC')
+                    valid = df[df.index >= ts]
+                    if not valid.empty and float(valid['open'].iloc[0]) > 0:
+                        changes[tf] = round(
+                            (last_close - float(valid['open'].iloc[0])) / float(valid['open'].iloc[0]) * 100, 2
+                        )
+                    else:
+                        changes[tf] = None
+                except Exception:
+                    changes[tf] = None
+
+            results[sym] = {'price': round(last_close, 2), **changes}
+
+        return {'symbols': results, 'count': len(results)}
+
+    except HTTPException:
+        raise
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=str(e))
+
 
 @app.post("/api/backtest")
 def run_backtest(req: BacktestRequest):
     try:
-        # ── DYNAMISCHE ALPACA CLIENTS ────────────────────
         if req.alpaca_key and req.alpaca_secret:
             stock_client  = StockHistoricalDataClient(req.alpaca_key, req.alpaca_secret)
             crypto_client = CryptoHistoricalDataClient()
@@ -159,12 +218,10 @@ def run_backtest(req: BacktestRequest):
                 detail="Keine Alpaca API-Keys konfiguriert. Bitte in 'Data & Synchro' eintragen."
             )
 
-
         mapped   = SYMBOL_MAP.get(req.symbol, req.symbol)
         tf       = TIMEFRAME_MAP.get(req.interval, TimeFrame.Day)
         start_dt = datetime.strptime(req.start, "%Y-%m-%d")
         end_dt   = datetime.strptime(req.end,   "%Y-%m-%d")
-
 
         if mapped in CRYPTO_SYMBOLS:
             bars_req = CryptoBarsRequest(
@@ -181,33 +238,26 @@ def run_backtest(req: BacktestRequest):
             )
             bars = stock_client.get_stock_bars(bars_req)
 
-
         df = bars.df
         if isinstance(df.index, pd.MultiIndex):
             df = df.reset_index(level=0, drop=True)
         df.columns = [c.lower() for c in df.columns]
 
-
         if df.empty:
             raise HTTPException(status_code=400, detail="Keine Daten. Symbol oder Zeitraum prüfen.")
-
 
         for name in req.active_indicators:
             if name in indicators:
                 df = indicators[name](df)
 
-
         strategy_name = req.strategy or (list(strategies.keys())[0] if strategies else None)
         if not strategy_name or strategy_name not in strategies:
             raise HTTPException(status_code=400, detail=f"Strategie '{strategy_name}' nicht gefunden.")
 
-
         df = strategies[strategy_name](df, fast=req.sma_period, slow=50)
-
 
         if "signal" not in df.columns:
             raise HTTPException(status_code=400, detail="Strategie hat keine 'signal'-Spalte.")
-
 
         df["position"]  = df["signal"].shift(1).fillna(0)
         df["returns"]   = df["close"].pct_change()
@@ -215,15 +265,12 @@ def run_backtest(req: BacktestRequest):
         df["equity"]    = req.capital * (1 + df["strat_ret"]).cumprod()
         df["bh_equity"] = req.capital * (1 + df["returns"]).cumprod()
 
-
-        # ── POTENTIAL EQUITY ZONE ────────────────────────
         equity_high_list, equity_low_list = [], []
         equity_vals   = df["equity"].values
         position_vals = df["position"].values
         high_vals     = df["high"].values
         low_vals      = df["low"].values
         close_vals    = df["close"].values
-
 
         for i in range(len(df)):
             eq = float(equity_vals[i])
@@ -234,12 +281,9 @@ def run_backtest(req: BacktestRequest):
                 equity_high_list.append(eq)
                 equity_low_list.append(eq)
 
-
         df["equity_high"] = equity_high_list
         df["equity_low"]  = equity_low_list
 
-
-        # ── PERFORMANCE METRIKEN ─────────────────────────
         peak          = df["equity"].cummax()
         max_dd        = ((df["equity"] - peak) / peak).min() * 100
         sharpe        = (df["strat_ret"].mean() / df["strat_ret"].std()) * np.sqrt(252) if df["strat_ret"].std() > 0 else 0
@@ -254,14 +298,11 @@ def run_backtest(req: BacktestRequest):
         profit_factor = round(gross_profit / gross_loss, 2) if gross_loss > 0 else 999
         calmar        = round(float(tot_r / abs(float(max_dd))), 2) if max_dd != 0 else 0
 
-
-        # ── EQUITY PROJEKTION ────────────────────────────
         proj_days  = max(5, len(df) // 4)
         daily_mean = float(df["strat_ret"].mean())
         daily_std  = float(df["strat_ret"].std())
         last_eq    = float(df["equity"].iloc[-1])
         last_date  = df.index[-1]
-
 
         future_dates = []
         cur = last_date
@@ -270,15 +311,12 @@ def run_backtest(req: BacktestRequest):
             if cur.weekday() < 5:
                 future_dates.append(cur)
 
-
         proj_upper = [last_eq * ((1 + daily_mean + daily_std) ** i) for i in range(1, proj_days + 1)]
         proj_lower = [last_eq * ((1 + daily_mean - daily_std) ** i) for i in range(1, proj_days + 1)]
         proj_mid   = [last_eq * ((1 + daily_mean) ** i)             for i in range(1, proj_days + 1)]
         proj_dates = [d.strftime("%Y-%m-%d") for d in future_dates]
 
-
         indicator_cols = [c for c in df.columns if c.startswith("sma_") or c.startswith("ema_")]
-
 
         return {
             "chart": {

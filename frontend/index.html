@@ -5,6 +5,7 @@
   <meta charset="UTF-8">
   <title>QuantOS</title>
   <link rel="stylesheet" href="css/style.css">
+  <link rel="stylesheet" href="css/market.css">
   <script src="https://cdn.plot.ly/plotly-latest.min.js"></script>
 </head>
 
@@ -21,6 +22,9 @@
       </li>
       <li class="nav-item" data-page="backtest">
         <span class="nav-icon">📊</span><span class="nav-label">Backtest</span>
+      </li>
+      <li class="nav-item" data-page="market">
+        <span class="nav-icon">🌡️</span><span class="nav-label">Market</span>
       </li>
       <li class="nav-item" data-page="markov">
         <span class="nav-icon">🔗</span><span class="nav-label">Markov</span>
@@ -141,6 +145,28 @@
       </div>
     </div>
 
+    <!-- MARKET PAGE -->
+    <div id="page-market" class="page">
+      <div class="market-container">
+        <div class="market-header">
+          <span class="market-title">🌡️ Market Heatmap</span>
+          <div class="heatmap-tf-group">
+            <button class="heatmap-tf-btn active" data-tf="1D">D</button>
+            <button class="heatmap-tf-btn" data-tf="1W">W</button>
+            <button class="heatmap-tf-btn" data-tf="1M">M</button>
+            <button class="heatmap-tf-btn" data-tf="1Y">Y</button>
+          </div>
+          <span class="heatmap-count" id="heatmap-count"></span>
+          <span class="heatmap-delay-hint" id="heatmap-delay-hint">⏱ Delayed ~75 min</span>
+          <button class="heatmap-refresh-btn" id="btn-refresh-heatmap">🔄 Refresh</button>
+        </div>
+
+        <div id="heatmap-grid">
+          <div class="heatmap-placeholder">🌡️ Market Tab öffnen um Daten zu laden</div>
+        </div>
+      </div>
+    </div>
+
     <div id="page-markov" class="page">
       <div class="coming-soon"><span>🔗</span>
         <h2>Markov</h2>
@@ -155,13 +181,11 @@
       </div>
     </div>
 
-    <!-- NEU: Data & Synchro Page -->
     <div id="page-synchro" class="page">
       <div class="synchro-container">
         <h1>🔐 Data & Synchro</h1>
         <p class="subtitle">API-Konfiguration & Cache-Verwaltung</p>
 
-        <!-- Status-Badge -->
         <div id="api-key-status" style="
       display:inline-block;
       font-size:12px;
@@ -177,7 +201,6 @@
 
         <div id="synchro-notification" class="synchro-notification"></div>
 
-        <!-- API Keys Section -->
         <div class="synchro-section">
           <h2>📡 Alpaca API</h2>
           <p class="section-desc">Deine API-Keys werden lokal im Browser gespeichert.</p>
@@ -197,7 +220,6 @@
 
         <div class="synchro-divider"></div>
 
-        <!-- Cache Reset Section -->
         <div class="synchro-section">
           <h2>🗑️ Cache verwalten</h2>
           <p class="section-desc">Setze gespeicherte Einstellungen zurück.</p>
@@ -222,7 +244,6 @@
       </div>
     </div>
 
-
     <!-- Symbol Browser Modal -->
     <div id="symbol-modal" class="modal">
       <div class="modal-content">
@@ -237,7 +258,7 @@
       </div>
     </div>
 
-    <!-- Scripts (einmalig, korrekte Reihenfolge) -->
+    <!-- Scripts -->
     <script src="../node_modules/split.js/dist/split.js"></script>
     <script src="https://unpkg.com/lightweight-charts@4.2.0/dist/lightweight-charts.standalone.production.js"></script>
     <script src="js/cache.js"></script>
@@ -245,6 +266,7 @@
     <script src="js/symbols.js"></script>
     <script src="js/home.js"></script>
     <script src="js/backtest.js"></script>
+    <script src="js/market.js"></script>
     <script src="js/synchro.js"></script>
     <script src="js/app.js"></script>
 

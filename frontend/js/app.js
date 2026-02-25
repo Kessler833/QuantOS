@@ -3,6 +3,7 @@ async function init() {
 
   initHome()
   initBacktest(modules)
+  initMarket()
   initSynchro()
 
   document.querySelectorAll('.nav-item').forEach(item => {
@@ -22,7 +23,6 @@ function navigateTo(page) {
   if (pageEl) pageEl.classList.add('active')
   if (navEl)  navEl.classList.add('active')
 
-  // Sidebar kollabiert wenn nicht Home
   const sidebar = document.getElementById('sidebar')
   if (page === 'home') {
     sidebar.classList.remove('collapsed')
@@ -30,11 +30,8 @@ function navigateTo(page) {
     sidebar.classList.add('collapsed')
   }
 
-  // Home-Page Warning aktualisieren
-  if (page === 'home') {
-    setTimeout(() => initHome(), 50)
-  }
-
+  if (page === 'home')    setTimeout(() => initHome(), 50)
+  if (page === 'market')  setTimeout(() => onMarketActivated(), 50)
   if (page === 'backtest') setTimeout(resizeAllCharts, 100)
 }
 
