@@ -1,6 +1,6 @@
 from fastapi import APIRouter, HTTPException
-from core.utils import load_modules  # ← geändert
-from data.symbols import get_all_symbols
+from backend.core.utils import load_modules
+from backend.data.symbols import get_all_symbols
 
 
 router = APIRouter()
