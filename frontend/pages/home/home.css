@@ -1,0 +1,71 @@
+.home-container {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  height: 100%;
+  gap: 24px;
+  padding: 40px;
+}
+
+.home-container h1 {
+  font-size: 32px;
+  font-weight: 800;
+  color: #cdd6f4;
+}
+
+.home-container .subtitle {
+  font-size: 14px;
+  color: #6c7086;
+}
+
+.home-cards {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 16px;
+  justify-content: center;
+  max-width: 900px;
+}
+
+.home-card {
+  background: #1a1a2e;
+  border: 1px solid #2a2a3e;
+  border-radius: 12px;
+  padding: 24px 28px;
+  width: 180px;
+  cursor: pointer;
+  transition: all 0.2s ease;
+  text-align: center;
+}
+
+.home-card:hover {
+  border-color: #7aa2f7;
+  transform: translateY(-4px);
+  background: #1e1e2e;
+}
+
+.home-card-icon  { font-size: 32px; margin-bottom: 10px; }
+.home-card-title { font-size: 14px; font-weight: 700; color: #cdd6f4; margin-bottom: 6px; }
+.home-card-desc  { font-size: 11px; color: #6c7086; line-height: 1.4; }
+
+.api-key-warning {
+  background: #1a1a2e;
+  border: 1px solid #ef5350;
+  border-radius: 10px;
+  padding: 20px 28px;
+  text-align: center;
+}
+
+.btn-primary {
+  background: #7aa2f7;
+  color: #0a0a14;
+  border: none;
+  padding: 8px 20px;
+  border-radius: 6px;
+  font-size: 13px;
+  font-weight: 700;
+  cursor: pointer;
+  transition: all 0.2s ease;
+}
+
+.btn-primary:hover { transform: translateY(-2px); }

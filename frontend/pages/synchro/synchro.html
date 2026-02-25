@@ -1,0 +1,45 @@
+<div class="synchro-container">
+  <h1>🔐 Data & Synchro</h1>
+  <p class="subtitle">API-Konfiguration & Cache-Verwaltung</p>
+
+  <div id="api-key-status" class="api-status-badge">
+    ⚠️ <span style="color:#ef5350;">Keine API-Keys</span>
+  </div>
+
+  <div id="synchro-notification" class="synchro-notification"></div>
+
+  <div class="synchro-section">
+    <h2>📡 Alpaca API</h2>
+    <p class="section-desc">Deine API-Keys werden lokal im Browser gespeichert.</p>
+    <div class="synchro-field">
+      <label>API Key</label>
+      <input type="text" id="input-alpaca-key" placeholder="PKXXXXXXXXXX">
+    </div>
+    <div class="synchro-field">
+      <label>API Secret</label>
+      <input type="password" id="input-alpaca-secret" placeholder="••••••••••••">
+    </div>
+    <button id="btn-save-api" class="synchro-btn primary">💾 API-Keys speichern</button>
+  </div>
+
+  <div class="synchro-divider"></div>
+
+  <div class="synchro-section">
+    <h2>🗑️ Cache verwalten</h2>
+    <p class="section-desc">Setze gespeicherte Einstellungen zurück.</p>
+    <div class="synchro-reset-grid">
+      <div class="reset-card">
+        <div class="reset-icon">🔄</div>
+        <h3>Partial Reset</h3>
+        <p>Setzt Layout & Parameter zurück.<br><strong>API-Keys bleiben erhalten.</strong></p>
+        <button id="btn-reset-partial" class="synchro-btn secondary">Partial Reset</button>
+      </div>
+      <div class="reset-card danger">
+        <div class="reset-icon">⚠️</div>
+        <h3>Full Reset</h3>
+        <p>Löscht <strong>alle</strong> Daten inkl. API-Keys.<br>Nicht rückgängig zu machen!</p>
+        <button id="btn-reset-full" class="synchro-btn danger">Full Reset</button>
+      </div>
+    </div>
+  </div>
+</div>

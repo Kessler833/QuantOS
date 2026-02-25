@@ -1,11 +1,25 @@
 <!DOCTYPE html>
 <html lang="de">
-
 <head>
   <meta charset="UTF-8">
   <title>QuantOS</title>
-  <link rel="stylesheet" href="css/style.css">
-  <link rel="stylesheet" href="css/market.css">
+
+  <!-- Core styles -->
+  <link rel="stylesheet" href="core/base.css">
+
+  <!-- Page styles -->
+  <link rel="stylesheet" href="pages/home/home.css">
+  <link rel="stylesheet" href="pages/backtest/backtest.css">
+  <link rel="stylesheet" href="pages/market/market.css">
+  <link rel="stylesheet" href="pages/synchro/synchro.css">
+
+  <!-- Legacy styles (noch nicht migriert) -->
+  <link rel="stylesheet" href="css/sidebar.css">
+  <link rel="stylesheet" href="css/controls.css">
+  <link rel="stylesheet" href="css/chart.css">
+  <link rel="stylesheet" href="css/modal.css">
+  <link rel="stylesheet" href="css/utilities.css">
+
   <script src="https://cdn.plot.ly/plotly-latest.min.js"></script>
 </head>
 
@@ -40,27 +54,21 @@
 
   <main id="main-content">
 
+    <!-- HOME -->
     <div id="page-home" class="page active">
-      <div id="home-container">
-        <h1>📈 QuantOS</h1>
-        <p class="subtitle">Deine persönliche Quant-Trading-Plattform</p>
-        <div id="module-cards"></div>
-      </div>
+      <!-- injiziert von home.js -->
     </div>
 
+    <!-- BACKTEST -->
     <div id="page-backtest" class="page">
-
       <div id="perf-panel">
         <div class="panel-header">⚡ Performance</div>
         <div id="perf-metrics">
           <p class="placeholder">Backtest starten um Ergebnisse zu sehen</p>
         </div>
       </div>
-
       <div id="backtest-body">
-
         <div id="panels-container">
-
           <div id="chart-panel">
             <div class="panel-header">📈 Chart</div>
             <div class="panel-content">
@@ -68,7 +76,6 @@
               <div class="plot-legend" id="legend-chart"></div>
             </div>
           </div>
-
           <div id="equity-panel">
             <div class="panel-header">📊 Equity Curve</div>
             <div class="panel-content">
@@ -76,9 +83,7 @@
               <div class="plot-legend" id="legend-equity"></div>
             </div>
           </div>
-
         </div>
-
         <div id="controls-panel">
           <div class="ctrl-section">
             <div class="ctrl-section-label">DATEN</div>
@@ -112,9 +117,7 @@
               <input type="number" id="ctrl-capital" value="10000">
             </div>
           </div>
-
           <div class="ctrl-divider"></div>
-
           <div class="ctrl-section">
             <div class="ctrl-section-label">STRATEGIE</div>
             <div class="ctrl-row">
@@ -126,9 +129,7 @@
               <input type="number" id="ctrl-sma" value="20">
             </div>
           </div>
-
           <div class="ctrl-divider"></div>
-
           <div class="ctrl-section">
             <div class="ctrl-section-label">INDIKATOREN</div>
             <div class="ctrl-row-inline">
@@ -137,139 +138,70 @@
             </div>
             <div id="active-indicators"></div>
           </div>
-
           <div style="flex:1"></div>
           <button id="btn-run">▶ Backtest starten</button>
         </div>
-
       </div>
     </div>
 
-    <!-- MARKET PAGE -->
+    <!-- MARKET -->
     <div id="page-market" class="page">
-      <div class="market-container">
-        <div class="market-header">
-          <span class="market-title">🌡️ Market Heatmap</span>
-          <div class="heatmap-tf-group">
-            <button class="heatmap-tf-btn active" data-tf="1D">D</button>
-            <button class="heatmap-tf-btn" data-tf="1W">W</button>
-            <button class="heatmap-tf-btn" data-tf="1M">M</button>
-            <button class="heatmap-tf-btn" data-tf="1Y">Y</button>
-          </div>
-          <span class="heatmap-count" id="heatmap-count"></span>
-          <span class="heatmap-delay-hint" id="heatmap-delay-hint">⏱ Delayed ~75 min</span>
-          <button class="heatmap-refresh-btn" id="btn-refresh-heatmap">🔄 Refresh</button>
-        </div>
-
-        <div id="heatmap-grid">
-          <div class="heatmap-placeholder">🌡️ Market Tab öffnen um Daten zu laden</div>
-        </div>
-      </div>
+      <!-- injiziert von market.js -->
     </div>
 
+    <!-- MARKOV -->
     <div id="page-markov" class="page">
-      <div class="coming-soon"><span>🔗</span>
-        <h2>Markov</h2>
-        <p>Coming soon</p>
+      <div class="coming-soon">
+        <span>🔗</span><h2>Markov</h2><p>Coming soon</p>
       </div>
     </div>
 
+    <!-- OPTIMIZER -->
     <div id="page-optimizer" class="page">
-      <div class="coming-soon"><span>⚙️</span>
-        <h2>Optimizer</h2>
-        <p>Coming soon</p>
+      <div class="coming-soon">
+        <span>⚙️</span><h2>Optimizer</h2><p>Coming soon</p>
       </div>
     </div>
 
+    <!-- SYNCHRO -->
     <div id="page-synchro" class="page">
-      <div class="synchro-container">
-        <h1>🔐 Data & Synchro</h1>
-        <p class="subtitle">API-Konfiguration & Cache-Verwaltung</p>
-
-        <div id="api-key-status" style="
-      display:inline-block;
-      font-size:12px;
-      font-weight:600;
-      padding:6px 12px;
-      border-radius:6px;
-      background:#1a1a2e;
-      border:1px solid #2a2a3e;
-      margin-bottom:20px;
-    ">
-          ⚠️ <span style="color:#ef5350;">Keine API-Keys</span>
-        </div>
-
-        <div id="synchro-notification" class="synchro-notification"></div>
-
-        <div class="synchro-section">
-          <h2>📡 Alpaca API</h2>
-          <p class="section-desc">Deine API-Keys werden lokal im Browser gespeichert.</p>
-
-          <div class="synchro-field">
-            <label>API Key</label>
-            <input type="text" id="input-alpaca-key" placeholder="PKXXXXXXXXXX">
-          </div>
-
-          <div class="synchro-field">
-            <label>API Secret</label>
-            <input type="password" id="input-alpaca-secret" placeholder="••••••••••••">
-          </div>
-
-          <button id="btn-save-api" class="synchro-btn primary">💾 API-Keys speichern</button>
-        </div>
-
-        <div class="synchro-divider"></div>
-
-        <div class="synchro-section">
-          <h2>🗑️ Cache verwalten</h2>
-          <p class="section-desc">Setze gespeicherte Einstellungen zurück.</p>
-
-          <div class="synchro-reset-grid">
-            <div class="reset-card">
-              <div class="reset-icon">🔄</div>
-              <h3>Partial Reset</h3>
-              <p>Setzt Layout & Parameter zurück.<br><strong>API-Keys bleiben erhalten.</strong></p>
-              <button id="btn-reset-partial" class="synchro-btn secondary">Partial Reset</button>
-            </div>
-
-            <div class="reset-card danger">
-              <div class="reset-icon">⚠️</div>
-              <h3>Full Reset</h3>
-              <p>Löscht <strong>alle</strong> Daten inkl. API-Keys.<br>Nicht rückgängig zu machen!</p>
-              <button id="btn-reset-full" class="synchro-btn danger">Full Reset</button>
-            </div>
-          </div>
-        </div>
-
-      </div>
+      <!-- injiziert von synchro.js -->
     </div>
 
-    <!-- Symbol Browser Modal -->
-    <div id="symbol-modal" class="modal">
-      <div class="modal-content">
-        <div class="modal-header">
-          <h3>📊 Symbol auswählen</h3>
-          <span class="modal-close">&times;</span>
-        </div>
-        <div class="modal-body">
-          <input type="text" id="symbol-search" placeholder="Suche Symbol oder Name...">
-          <div id="symbol-list"></div>
-        </div>
+  </main>
+
+  <!-- Symbol Browser Modal -->
+  <div id="symbol-modal" class="modal">
+    <div class="modal-content">
+      <div class="modal-header">
+        <h3>📊 Symbol auswählen</h3>
+        <span class="modal-close">&times;</span>
+      </div>
+      <div class="modal-body">
+        <input type="text" id="symbol-search" placeholder="Suche Symbol oder Name...">
+        <div id="symbol-list"></div>
       </div>
     </div>
+  </div>
 
-    <!-- Scripts -->
-    <script src="../node_modules/split.js/dist/split.js"></script>
-    <script src="https://unpkg.com/lightweight-charts@4.2.0/dist/lightweight-charts.standalone.production.js"></script>
-    <script src="js/cache.js"></script>
-    <script src="js/api.js"></script>
-    <script src="js/symbols.js"></script>
-    <script src="js/home.js"></script>
-    <script src="js/backtest.js"></script>
-    <script src="js/market.js"></script>
-    <script src="js/synchro.js"></script>
-    <script src="js/app.js"></script>
+  <!-- Scripts -->
+  <script src="../node_modules/split.js/dist/split.js"></script>
+  <script src="https://unpkg.com/lightweight-charts@4.2.0/dist/lightweight-charts.standalone.production.js"></script>
+
+  <!-- Core -->
+  <script src="js/cache.js"></script>
+  <script src="core/router.js"></script>
+  <script src="core/api.js"></script>
+  <script src="js/symbols.js"></script>
+
+  <!-- Pages -->
+  <script src="pages/home/home.js"></script>
+  <script src="pages/market/market.js"></script>
+  <script src="pages/synchro/synchro.js"></script>
+  <script src="js/backtest.js"></script>
+
+  <!-- App init -->
+  <script src="js/app.js"></script>
 
 </body>
-
 </html>
