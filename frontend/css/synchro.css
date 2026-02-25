@@ -244,3 +244,8 @@
     grid-template-columns: 1fr;
   }
 }
+
+.synchro-notification.info {
+  background: #7aa2f7;
+  color: #ffffff;
+}

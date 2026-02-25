@@ -3,7 +3,7 @@ async function init() {
 
   initHome()
   initBacktest(modules)
-  initSynchro()  // ← NEU
+  initSynchro()
 
   document.querySelectorAll('.nav-item').forEach(item => {
     item.addEventListener('click', () => navigateTo(item.dataset.page))
@@ -28,6 +28,11 @@ function navigateTo(page) {
     sidebar.classList.remove('collapsed')
   } else {
     sidebar.classList.add('collapsed')
+  }
+
+  // Home-Page Warning aktualisieren
+  if (page === 'home') {
+    setTimeout(() => initHome(), 50)
   }
 
   if (page === 'backtest') setTimeout(resizeAllCharts, 100)

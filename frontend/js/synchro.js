@@ -8,9 +8,6 @@ function initSynchro() {
   document.getElementById('btn-save-api').addEventListener('click', _saveApiKeys)
   document.getElementById('btn-reset-partial').addEventListener('click', _resetPartial)
   document.getElementById('btn-reset-full').addEventListener('click', _resetFull)
-
-  document.getElementById('input-alpaca-key').addEventListener('input', _saveApiKeys)
-  document.getElementById('input-alpaca-secret').addEventListener('input', _saveApiKeys)
 }
 
 // ── API KEYS WIEDERHERSTELLEN ─────────────────────────────
@@ -21,7 +18,6 @@ function _restoreApiKeys() {
       document.getElementById('input-alpaca-key').value = cached.api.alpacaKey || ''
       document.getElementById('input-alpaca-secret').value = cached.api.alpacaSecret || ''
       
-      // ── Status-Indikator ──────────────────────────────
       _updateKeyStatus(cached.api.alpacaKey, cached.api.alpacaSecret)
     } else {
       _updateKeyStatus('', '')
@@ -32,22 +28,68 @@ function _restoreApiKeys() {
   }
 }
 
-// ── API KEYS SPEICHERN ────────────────────────────────────
-function _saveApiKeys() {
+// ── API KEYS SPEICHERN & VALIDIEREN ───────────────────────
+async function _saveApiKeys() {
   try {
     var key    = document.getElementById('input-alpaca-key').value.trim()
     var secret = document.getElementById('input-alpaca-secret').value.trim()
 
-    QuantCache.saveApi({
-      alpacaKey:    key,
-      alpacaSecret: secret
+    if (!key || !secret) {
+      _showNotification('❌ Bitte beide Felder ausfüllen', 'error')
+      return
+    }
+
+    _showNotification('⏳ Validiere API-Keys...', 'info')
+
+    // API-Keys testen
+    const isValid = await _validateApiKeys(key, secret)
+
+    if (isValid) {
+      QuantCache.saveApi({
+        alpacaKey:    key,
+        alpacaSecret: secret
+      })
+
+      _updateKeyStatus(key, secret)
+      _showNotification('✅ API-Keys gespeichert und validiert', 'success')
+      
+      // Home-Seite aktualisieren falls sie geladen ist
+      setTimeout(() => {
+        if (document.getElementById('page-home').classList.contains('active')) {
+          initHome()
+        }
+      }, 500)
+    } else {
+      _showNotification('❌ Ungültige API-Keys - bitte überprüfen', 'error')
+      _updateKeyStatus('', '')
+    }
+  } catch (e) {
+    _showNotification('❌ Validierung fehlgeschlagen: ' + e.message, 'error')
+    console.error(e)
+  }
+}
+
+// ── API KEYS VALIDIEREN ───────────────────────────────────
+async function _validateApiKeys(key, secret) {
+  try {
+    const response = await fetch('http://localhost:8000/api/health', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        alpaca_key: key,
+        alpaca_secret: secret
+      })
     })
 
-    _updateKeyStatus(key, secret)
-    _showNotification('✅ API-Keys gespeichert', 'success')
+    if (!response.ok) {
+      return false
+    }
+
+    const data = await response.json()
+    return data.status === 'ok' && data.alpaca_valid === true
   } catch (e) {
-    _showNotification('❌ Speichern fehlgeschlagen', 'error')
-    console.error(e)
+    console.error('[Synchro] API validation error:', e)
+    return false
   }
 }
 
