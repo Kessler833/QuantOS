@@ -1,4 +1,4 @@
-from fastapi import APIRouter, HTTPException
+from fastapi import APIRouter, HTTPException, Query
 from fastapi.responses import StreamingResponse
 from pydantic import BaseModel
 from datetime import datetime, timedelta
@@ -92,21 +92,24 @@ def _sync_fetch_batch(
 # ─────────────────────────────────────────────────────────────────────────────
 
 
-@router.post("/heatmap/stream")
-async def get_heatmap_stream(req: HeatmapRequest):
+@router.get("/heatmap/stream")
+async def get_heatmap_stream(
+    alpaca_key: str = Query(default=""),
+    alpaca_secret: str = Query(default="")
+):
     """Streaming endpoint mit Progress-Updates, ETA und Caching."""
 
     async def event_generator():
         try:
-            if not req.alpaca_key or not req.alpaca_secret:
+            if not alpaca_key or not alpaca_secret:
                 yield "data: " + json.dumps(
                     {"error": "Keine API-Keys konfiguriert"}
                 ) + "\n\n"
                 return
 
             stock_client = StockHistoricalDataClient(
-                req.alpaca_key,
-                req.alpaca_secret
+                alpaca_key,
+                alpaca_secret
             )
             now = time.time()
 
@@ -120,7 +123,7 @@ async def get_heatmap_stream(req: HeatmapRequest):
                 or not _symbol_cache["symbols"]
             ):
                 symbols = await asyncio.to_thread(
-                    _sync_fetch_symbols, req.alpaca_key, req.alpaca_secret
+                    _sync_fetch_symbols, alpaca_key, alpaca_secret
                 )
                 _symbol_cache["symbols"] = symbols
                 _symbol_cache["ts"] = now
@@ -137,7 +140,7 @@ async def get_heatmap_stream(req: HeatmapRequest):
             ) + "\n\n"
 
             # ── Stage 2: Bars laden (Cache + sequentiell mit ETA) ────────────
-            cache_key = req.alpaca_key[:8]
+            cache_key = alpaca_key[:8]
 
             if (
                 now - float(_bars_cache["ts"]) < BARS_CACHE_TTL

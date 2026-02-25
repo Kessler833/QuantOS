@@ -37,3 +37,5 @@ const QuantCache = {
     localStorage.removeItem(CACHE_KEY)
   }
 }
+
+window.QuantCache = QuantCache;

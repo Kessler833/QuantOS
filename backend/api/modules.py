@@ -1,5 +1,5 @@
 from fastapi import APIRouter, HTTPException
-from ..core.utils import load_modules  # ← geändert
+from core.utils import load_modules  # ← geändert
 from data.symbols import get_all_symbols
 
 

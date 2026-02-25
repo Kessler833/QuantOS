@@ -4,9 +4,10 @@
 let heatmapSource = null;
 let heatmapEtaSeconds = null;
 let heatmapEtaTimer = null;
+let heatmapInitialized = false; // verhindert Doppel-Load
 
 
-// Einfaches ETA-Label aktualisieren
+// ETA-Label aktualisieren
 function updateEtaDisplay(seconds) {
   const el = document.querySelector('#heatmap-eta');
   if (!el) return;
@@ -18,7 +19,7 @@ function updateEtaDisplay(seconds) {
 
   const m = Math.floor(seconds / 60);
   const s = seconds % 60;
-  el.textContent = `ETA: ${m}:${s.toString().padStart(2, '0')}`;
+  el.textContent = 'ETA: ' + m + ':' + s.toString().padStart(2, '0');
 }
 
 
@@ -27,7 +28,7 @@ function startEtaTimer() {
   if (heatmapEtaTimer) clearInterval(heatmapEtaTimer);
   if (heatmapEtaSeconds == null) return;
 
-  heatmapEtaTimer = setInterval(() => {
+  heatmapEtaTimer = setInterval(function () {
     if (heatmapEtaSeconds <= 0) {
       clearInterval(heatmapEtaTimer);
       heatmapEtaTimer = null;
@@ -39,7 +40,7 @@ function startEtaTimer() {
 }
 
 
-// Status-Label für aktuelle Stage
+// Status-Label
 function updateHeatmapStatus(text) {
   const el = document.querySelector('#heatmap-status');
   if (!el) return;
@@ -47,31 +48,28 @@ function updateHeatmapStatus(text) {
 }
 
 
-// Progress-Bar optional
+// Progress-Bar
 function updateHeatmapProgress(progress) {
   const el = document.querySelector('#heatmap-progress');
   if (!el) return;
   const value = Math.max(0, Math.min(100, progress || 0));
-  el.style.width = `${value}%`;
+  el.style.width = value + '%';
 }
 
 
-// Hauptfunktion zum Laden der Heatmap
+// Heatmap laden
 async function _loadHeatmap() {
-  // Falls schon ein Stream offen ist → schließen
+  // Laufenden Stream schließen
   if (heatmapSource) {
     heatmapSource.close();
     heatmapSource = null;
   }
 
-  // API-Keys aus deinem Cache
+  // API-Keys aus Cache (window.QuantCache wird jetzt korrekt gesetzt)
   const cache = window.QuantCache ? window.QuantCache.load() : null;
-  console.log('Heatmap cache:', cache);
 
-  const alpacaKey =
-    cache && cache.api && cache.api.alpacaKey ? cache.api.alpacaKey : '';
-  const alpacaSecret =
-    cache && cache.api && cache.api.alpacaSecret ? cache.api.alpacaSecret : '';
+  const alpacaKey    = (cache && cache.api && cache.api.alpacaKey)    ? cache.api.alpacaKey    : '';
+  const alpacaSecret = (cache && cache.api && cache.api.alpacaSecret) ? cache.api.alpacaSecret : '';
 
   if (!alpacaKey || !alpacaSecret) {
     updateHeatmapStatus('Keine API-Keys konfiguriert.');
@@ -82,21 +80,20 @@ async function _loadHeatmap() {
   updateEtaDisplay(null);
   updateHeatmapProgress(0);
 
-  // Achtung: dein Backend erwartet die Keys aktuell im Body (HeatmapRequest).
-  // Diese Query-Variante funktioniert nur, wenn du den Stream-Endpunkt entsprechend anpasst.
-  const url = `/api/market/heatmap/stream`;
+  // Keys via Query-Params (SSE kann kein POST-Body)
+  const url = '/api/market/heatmap/stream';
   const qs = new URLSearchParams({
     alpaca_key: alpacaKey,
     alpaca_secret: alpacaSecret,
   }).toString();
 
-  heatmapSource = new EventSource(`${url}?${qs}`);
+  heatmapSource = new EventSource(url + '?' + qs);
 
-  heatmapSource.onopen = () => {
+  heatmapSource.onopen = function () {
     updateHeatmapStatus('Verbindung hergestellt. Lade Daten...');
   };
 
-  heatmapSource.onerror = (err) => {
+  heatmapSource.onerror = function (err) {
     console.error('Heatmap SSE error', err);
     updateHeatmapStatus('Fehler beim Laden der Heatmap.');
     if (heatmapSource) {
@@ -105,10 +102,10 @@ async function _loadHeatmap() {
     }
   };
 
-  heatmapSource.onmessage = (event) => {
+  heatmapSource.onmessage = function (event) {
     if (!event.data) return;
 
-    let data;
+    var data;
     try {
       data = JSON.parse(event.data);
     } catch (e) {
@@ -121,36 +118,39 @@ async function _loadHeatmap() {
       return;
     }
 
-    // ETA übernehmen
+    // ETA übernehmen + Countdown starten
     if (data.eta_seconds !== undefined && data.eta_seconds !== null) {
       heatmapEtaSeconds = data.eta_seconds;
       updateEtaDisplay(heatmapEtaSeconds);
       startEtaTimer();
     }
 
-    // Stage-bezogene UI
     if (data.stage === 'symbols') {
       updateHeatmapStatus(data.message || 'Lade Symbolliste...');
+
     } else if (data.stage === 'loading-cache') {
       updateHeatmapStatus(data.message || 'Lade aus Cache...');
       updateHeatmapProgress(data.progress || 100);
+
     } else if (data.stage === 'loading-init') {
       updateHeatmapStatus(data.message || 'Starte Datenladen...');
+
     } else if (data.stage === 'batch_start') {
-      const msg =
-        data.message ||
-        ('Starte Batch ' + data.batch + '/' + data.total_batches + '...');
-      updateHeatmapStatus(msg);
+      updateHeatmapStatus(
+        data.message || ('Starte Batch ' + data.batch + '/' + data.total_batches + '...')
+      );
+
     } else if (data.stage === 'batch_done') {
       updateHeatmapStatus(
-        data.message ||
-          ('Batch ' + data.batch + '/' + data.total_batches + ' abgeschlossen')
+        data.message || ('Batch ' + data.batch + '/' + data.total_batches + ' abgeschlossen')
       );
       if (typeof data.progress === 'number') {
         updateHeatmapProgress(data.progress);
       }
+
     } else if (data.stage === 'calculating') {
       updateHeatmapStatus(data.message || 'Berechne Veränderungen...');
+
     } else if (data.stage === 'done') {
       updateHeatmapStatus('Fertig.');
       updateHeatmapProgress(100);
@@ -161,19 +161,22 @@ async function _loadHeatmap() {
         heatmapEtaTimer = null;
       }
 
-      // Placeholder entfernen / später: Heatmap rendern
       const grid = document.querySelector('#heatmap-grid');
       if (grid) {
         grid.innerHTML = '';
-        // TODO: hier deine Kacheln aus data.symbols rendern
+        // TODO: renderHeatmap(data.symbols);
       }
+
+      heatmapSource.close();
+      heatmapSource = null;
     }
   };
 }
 
 
-// von app.js aufgerufen
+// app.js ruft initMarket() beim Start auf
 function initMarket() {
+  heatmapInitialized = false;
   updateHeatmapStatus('');
   updateEtaDisplay(null);
   updateHeatmapProgress(0);
@@ -184,10 +187,16 @@ function initMarket() {
       _loadHeatmap();
     };
   }
-
-  _loadHeatmap();
 }
 
-// global machen, damit app.js es findet
-window.initMarket = initMarket;
-window.onMarketActivated = initMarket;
+// app.js ruft onMarketActivated() beim Tab-Wechsel auf
+function onMarketActivated() {
+  if (!heatmapInitialized) {
+    heatmapInitialized = true;
+    _loadHeatmap();
+  }
+}
+
+// global registrieren
+window.initMarket        = initMarket;
+window.onMarketActivated = onMarketActivated;
