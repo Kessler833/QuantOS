@@ -3,9 +3,9 @@
   "version": "1.0.0",
   "main": "electron/main.js",
   "scripts": {
-    "start": "concurrently \".venv\\\\Scripts\\\\python -m uvicorn backend.main:app --reload --port 8000\" \"electron .\"",
+    "start": "concurrently \"uvicorn backend.main:app --reload --port 8000\" \"electron .\"",
     "electron": "electron .",
-    "backend": ".venv\\\\Scripts\\\\python -m uvicorn backend.main:app --reload --port 8000"
+    "backend": "uvicorn backend.main:app --reload --port 8000"
   },
   "devDependencies": {
     "electron": "^33.0.0",
