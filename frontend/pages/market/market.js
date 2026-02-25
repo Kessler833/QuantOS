@@ -4,28 +4,6 @@ let heatmapLoaded = false
 let heatmapTf     = '1D'
 
 function initMarket() {
-  const container = document.getElementById('page-market')
-  if (!container) return
-
-  container.innerHTML = `
-    <div class="market-container">
-      <div class="market-header">
-        <span class="market-title">🌡️ Market Heatmap</span>
-        <div class="heatmap-tf-group">
-          <button class="heatmap-tf-btn active" data-tf="1D">D</button>
-          <button class="heatmap-tf-btn" data-tf="1W">W</button>
-          <button class="heatmap-tf-btn" data-tf="1M">M</button>
-          <button class="heatmap-tf-btn" data-tf="1Y">Y</button>
-        </div>
-        <span class="heatmap-count" id="heatmap-count"></span>
-        <span class="heatmap-delay-hint">⏱ Delayed ~75 min</span>
-        <button class="heatmap-refresh-btn" id="btn-refresh-heatmap">🔄 Refresh</button>
-      </div>
-      <div id="heatmap-grid">
-        <div class="heatmap-placeholder">🌡️ Market Tab öffnen um Daten zu laden</div>
-      </div>
-    </div>`
-
   document.querySelectorAll('.heatmap-tf-btn').forEach(btn => {
     btn.addEventListener('click', () => {
       document.querySelectorAll('.heatmap-tf-btn').forEach(b => b.classList.remove('active'))
@@ -35,11 +13,14 @@ function initMarket() {
     })
   })
 
-  document.getElementById('btn-refresh-heatmap').addEventListener('click', () => {
-    heatmapLoaded = false
-    heatmapData   = null
-    _loadHeatmap()
-  })
+  const refreshBtn = document.getElementById('btn-refresh-heatmap')
+  if (refreshBtn) {
+    refreshBtn.addEventListener('click', () => {
+      heatmapLoaded = false
+      heatmapData   = null
+      _loadHeatmap()
+    })
+  }
 }
 
 function onMarketActivated() {
@@ -66,17 +47,184 @@ async function _loadHeatmap() {
     return
   }
 
-  grid.innerHTML = '<div class="heatmap-loading">⏳ Lade Marktdaten… kann bis zu 30s dauern</div>'
-  document.getElementById('heatmap-count').textContent = ''
+  grid.innerHTML = `
+    <div class="heatmap-loading" style="width:100%; padding:40px 20px;">
+      <div style="font-size:24px; margin-bottom:16px; text-align:center;">⏳</div>
+      
+      <div style="width:100%; height:8px; background:#1a1a2e; border-radius:4px; overflow:hidden; margin-bottom:16px;">
+        <div id="heatmap-progress-bar" style="width:0%; height:100%; background:linear-gradient(90deg, #7aa2f7, #89b4fa); transition:width 0.3s;"></div>
+      </div>
+      
+      <div style="display:flex; justify-content:space-between; align-items:center; font-size:12px; color:#6c7086; margin-bottom:12px;">
+        <div id="heatmap-symbols-count">0 / ? Symbole</div>
+        <div id="heatmap-time-estimate">Berechne...</div>
+      </div>
+      
+      <div id="heatmap-progress" style="font-size:12px; color:#89b4fa; text-align:center; font-weight:500;">
+        Initialisiere Verbindung zu Alpaca...
+      </div>
+    </div>`
+
+  const countEl = document.getElementById('heatmap-count')
+  if (countEl) countEl.textContent = ''
+
+  const progressEl     = document.getElementById('heatmap-progress')
+  const progressBar    = document.getElementById('heatmap-progress-bar')
+  const symbolsCount   = document.getElementById('heatmap-symbols-count')
+  const timeEstimate   = document.getElementById('heatmap-time-estimate')
+
+  let startTime = null
+  let totalSymbols = 0
+  let firstBatchTime = null
+  let batchTimes = []
 
   try {
-    heatmapData   = await apiHeatmap({ alpaca_key: apiKeys.alpacaKey, alpaca_secret: apiKeys.alpacaSecret })
-    heatmapLoaded = true
-    _renderHeatmap()
+    const response = await fetch('http://localhost:8000/api/heatmap/stream', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        alpaca_key: apiKeys.alpacaKey,
+        alpaca_secret: apiKeys.alpacaSecret
+      })
+    })
+
+    const reader = response.body.getReader()
+    const decoder = new TextDecoder()
+    let buffer = '' // Buffer für unvollständige Daten
+
+    while (true) {
+      const { done, value } = await reader.read()
+      if (done) break
+
+      buffer += decoder.decode(value, { stream: true })
+      
+      // Verarbeite vollständige Events (getrennt durch \n\n)
+      const events = buffer.split('\n\n')
+      buffer = events.pop() || '' // Letztes (unvollständiges) Element zurück in Buffer
+
+      for (const event of events) {
+        if (!event.trim()) continue
+        
+        const lines = event.split('\n')
+        for (const line of lines) {
+          if (!line.startsWith('data: ')) continue
+          
+          const dataStr = line.substring(6).trim()
+          if (!dataStr) continue
+
+          let data
+          try {
+            data = JSON.parse(dataStr)
+          } catch (parseErr) {
+            console.warn('[Heatmap] JSON parse error, skipping chunk:', parseErr)
+            continue
+          }
+
+          if (data.error) {
+            throw new Error(data.error)
+          }
+
+          if (data.stage === 'symbols') {
+            if (data.total) {
+              totalSymbols = data.total
+              if (symbolsCount) symbolsCount.textContent = `0 / ${totalSymbols.toLocaleString('de-DE')} Symbole`
+              if (progressEl) progressEl.textContent = `✅ ${totalSymbols.toLocaleString('de-DE')} handelbare US-Aktien gefunden`
+            } else {
+              if (progressEl) progressEl.textContent = 'Lade Symbolliste von Alpaca Trading API...'
+            }
+            if (progressBar) progressBar.style.width = '2%'
+            if (timeEstimate) timeEstimate.textContent = 'Berechne...'
+            startTime = Date.now()
+          }
+
+          if (data.stage === 'loading') {
+            const loaded = data.loaded || 0
+            const progress = data.progress || 0
+            const batch = data.batch || 0
+            const totalBatches = data.total_batches || 1
+            
+            if (symbolsCount) symbolsCount.textContent = `${loaded.toLocaleString('de-DE')} / ${totalSymbols.toLocaleString('de-DE')} Symbole`
+            if (progressBar) progressBar.style.width = progress + '%'
+            
+            if (progressEl) {
+              const batchSymbols = Math.min(500, totalSymbols - ((batch - 1) * 500))
+              progressEl.textContent = `📊 Batch ${batch}/${totalBatches} • Lade ${batchSymbols} Symbole von Alpaca Data API...`
+            }
+            
+            if (batch === 1 && !firstBatchTime) {
+              firstBatchTime = Date.now()
+            }
+            
+            if (batch > 1 && firstBatchTime) {
+              const currentTime = Date.now()
+              batchTimes.push(currentTime)
+              
+              const recentBatches = batchTimes.slice(-5)
+              let avgBatchTime = 0
+              if (recentBatches.length > 1) {
+                for (let i = 1; i < recentBatches.length; i++) {
+                  avgBatchTime += (recentBatches[i] - recentBatches[i-1]) / 1000
+                }
+                avgBatchTime /= (recentBatches.length - 1)
+              } else {
+                avgBatchTime = (currentTime - firstBatchTime) / 1000 / (batch - 1)
+              }
+              
+              const remainingBatches = totalBatches - batch
+              const estimatedRemaining = remainingBatches * avgBatchTime
+              
+              if (timeEstimate && estimatedRemaining > 0) {
+                if (estimatedRemaining < 60) {
+                  timeEstimate.textContent = `~${Math.ceil(estimatedRemaining)}s`
+                } else {
+                  const mins = Math.floor(estimatedRemaining / 60)
+                  const secs = Math.ceil(estimatedRemaining % 60)
+                  timeEstimate.textContent = `~${mins}m ${secs}s`
+                }
+              }
+            } else if (batch === 1) {
+              if (timeEstimate) timeEstimate.textContent = '~5-10s'
+            }
+          }
+
+          if (data.stage === 'calculating') {
+            if (progressEl) progressEl.textContent = `🧮 Berechne Veränderungen (1D, 1W, 1M, 1Y)...`
+            if (progressBar) progressBar.style.width = '98%'
+            if (timeEstimate) timeEstimate.textContent = 'Fast fertig...'
+          }
+
+          if (data.stage === 'done') {
+            if (progressBar) progressBar.style.width = '100%'
+            if (symbolsCount) symbolsCount.textContent = `${data.count.toLocaleString('de-DE')} Symbole geladen`
+            
+            const totalTime = ((Date.now() - startTime) / 1000).toFixed(1)
+            if (timeEstimate) timeEstimate.textContent = `✅ ${totalTime}s`
+            if (progressEl) progressEl.textContent = `🌡️ Heatmap fertig! ${data.count.toLocaleString('de-DE')} Symbole mit Kursdaten bereit.`
+            
+            heatmapData = data
+            heatmapLoaded = true
+            
+            setTimeout(() => _renderHeatmap(), 400)
+          }
+        }
+      }
+    }
+
   } catch (e) {
-    grid.innerHTML = `<div class="heatmap-error">❌ ${e.message}</div>`
+    console.error('[Heatmap] Fehler:', e)
+    grid.innerHTML = `
+      <div class="heatmap-error">
+        ❌ ${e.message}
+        <br>
+        <button onclick="heatmapLoaded=false; heatmapData=null; _loadHeatmap()" style="
+          margin-top:14px; background:#1a1a2e; color:#7aa2f7;
+          border:1px solid #7aa2f7; padding:6px 16px; border-radius:6px;
+          font-size:12px; cursor:pointer;
+        ">🔄 Nochmal versuchen</button>
+      </div>`
   }
 }
+
 
 function _renderHeatmap() {
   const grid = document.getElementById('heatmap-grid')
@@ -86,7 +234,8 @@ function _renderHeatmap() {
     .filter(([, d]) => d[heatmapTf] !== null && d[heatmapTf] !== undefined)
     .sort((a, b) => (b[1][heatmapTf] || 0) - (a[1][heatmapTf] || 0))
 
-  document.getElementById('heatmap-count').textContent = `${entries.length} Symbole`
+  const countEl = document.getElementById('heatmap-count')
+  if (countEl) countEl.textContent = `${entries.length} Symbole`
 
   grid.innerHTML = entries.map(([sym, data]) => {
     const pct  = data[heatmapTf]

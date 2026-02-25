@@ -22,21 +22,31 @@ window.addEventListener('click', (e) => {
 async function preloadSymbols() {
   if (symbolData) return;
   try {
-    const res = await fetch('http://localhost:8000/api/symbols');
-    const data = await res.json();
-
-    if (Array.isArray(data)) {
-      symbolData = data;
-    } else if (data.symbols && Array.isArray(data.symbols)) {
-      symbolData = data.symbols;
-    } else {
-      throw new Error('Invalid data format');
+    const cached = QuantCache.load()
+    const apiKeys = (cached && cached.api) ? cached.api : {}
+    
+    if (!apiKeys.alpacaKey || !apiKeys.alpacaSecret) {
+      console.warn('⚠️ Keine API-Keys für Symbole')
+      return
     }
+
+    const res = await fetch('http://localhost:8000/api/symbols', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        alpaca_key: apiKeys.alpacaKey,
+        alpaca_secret: apiKeys.alpacaSecret
+      })
+    });
+    
+    const data = await res.json();
+    symbolData = Array.isArray(data) ? data : (data.symbols || []);
     console.log('✅ Symbols cached:', symbolData.length);
   } catch (err) {
-    console.error('❌ Cache load failed:', err);
+    console.error('❌ Symbol cache failed:', err);
   }
 }
+
 
 preloadSymbols();
 

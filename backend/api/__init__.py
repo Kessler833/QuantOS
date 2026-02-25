@@ -1,6 +1,3 @@
-from . import health
-from . import modules
-from . import market
-from . import backtest
+from . import health, modules, market, backtest, symbols
 
-__all__ = ['health', 'modules', 'market', 'backtest']
+__all__ = ['health', 'modules', 'market', 'backtest', 'symbols']
