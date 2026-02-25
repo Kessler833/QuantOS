@@ -1,24 +1,29 @@
 async function init() {
-  const modules = await apiModules()
+  let modules = { strategies: [], indicators: [] }
+  try {
+    modules = await apiModules()
+  } catch (e) {
+    console.warn('[App] Backend nicht erreichbar:', e)
+  }
 
-  // Pages initialisieren
   await _injectPageHTML('page-home',    './pages/home/home.html')
   await _injectPageHTML('page-market',  './pages/market/market.html')
   await _injectPageHTML('page-synchro', './pages/synchro/synchro.html')
 
-  initHome()
-  initBacktest(modules)
-  initMarket()
-  initSynchro()
+  try { initHome() }            catch (e) { console.warn('[Init] home:', e) }
+  try { initBacktest(modules) } catch (e) { console.warn('[Init] backtest:', e) }
+  try { initMarket() }          catch (e) { console.warn('[Init] market:', e) }
+  try { initSynchro() }         catch (e) { console.warn('[Init] synchro:', e) }
 
+  // Diese zwei Blöcke laufen jetzt IMMER, egal was crasht:
   document.querySelectorAll('.nav-item').forEach(item => {
     item.addEventListener('click', () => navigateTo(item.dataset.page))
   })
 
   document.addEventListener('page-activated', (e) => {
     const page = e.detail.page
-    if (page === 'home')   initHome()
-    if (page === 'market') onMarketActivated()
+    if (page === 'home')     try { initHome() }          catch(_) {}
+    if (page === 'market')   try { onMarketActivated() } catch(_) {}
     if (page === 'backtest') setTimeout(resizeAllCharts, 100)
   })
 
@@ -32,7 +37,7 @@ async function _injectPageHTML(containerId, path) {
     const el   = document.getElementById(containerId)
     if (el) el.innerHTML = html
   } catch (e) {
-    console.warn(`[App] Could not inject ${path}:`, e)
+    console.warn(`[App] HTML inject fehlgeschlagen für ${path}:`, e)
   }
 }
 

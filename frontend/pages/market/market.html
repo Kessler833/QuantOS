@@ -11,16 +11,17 @@
     <span class="heatmap-delay-hint" id="heatmap-delay-hint">⏱ Market is delayed by 75 min</span>
     <button class="heatmap-refresh-btn" id="btn-refresh-heatmap">🔄 Refresh</button>
   </div>
+
+  <!-- Status + Progress INNERHALB der market-container -->
+  <div class="heatmap-header">
+    <div id="heatmap-status" class="heatmap-status-label"></div>
+    <div id="heatmap-eta" class="heatmap-eta-label"></div>
+  </div>
+  <div class="heatmap-progress-bar">
+    <div id="heatmap-progress" class="heatmap-progress-fill"></div>
+  </div>
+
   <div id="heatmap-grid">
     <div class="heatmap-placeholder">🌡️ Market Tab öffnen um Daten zu laden</div>
   </div>
 </div>
-
-<div class="heatmap-header">
-  <div id="heatmap-status" class="heatmap-status-label"></div>
-  <div id="heatmap-eta" class="heatmap-eta-label"></div>
-</div>
-<div class="heatmap-progress-bar">
-  <div id="heatmap-progress" class="heatmap-progress-fill"></div>
-</div>
-<button id="heatmap-reload-btn">Heatmap neu laden</button>

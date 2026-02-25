@@ -15,6 +15,6 @@ app.add_middleware(
 
 app.include_router(health.router, prefix="/api", tags=["health"])
 app.include_router(modules.router, prefix="/api", tags=["modules"])
-app.include_router(market.router, prefix="/api", tags=["market"])
+app.include_router(market.router, prefix="/api/market", tags=["market"])
 app.include_router(backtest.router, prefix="/api", tags=["backtest"])
 app.include_router(symbols.router, prefix="/api", tags=["symbols"])

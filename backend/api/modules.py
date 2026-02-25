@@ -1,7 +1,5 @@
-from fastapi import APIRouter, HTTPException
-from core.utils import load_modules  # ← geändert
-from data.symbols import get_all_symbols
-
+from fastapi import APIRouter
+from backend.core.utils import load_modules
 
 router = APIRouter()
 
@@ -14,10 +12,4 @@ def get_modules():
         "indicators": list(indicators.keys()),
         "strategies": list(strategies.keys())
     }
-
-@router.get("/symbols")
-def list_symbols(alpaca_key: str = "", alpaca_secret: str = ""):
-    try:
-        return get_all_symbols(alpaca_key, alpaca_secret)
-    except Exception as e:
-        raise HTTPException(status_code=500, detail=str(e))
+# ↑ GET /symbols komplett raus — der POST /symbols in api/symbols.py macht das schon

@@ -60,13 +60,3 @@ body {
   font-size: 22px;
   margin-bottom: 8px;
 }
-
-.page {
-  display: none !important;
-}
-
-.page.active {
-  display: flex !important;
-  flex-direction: column;
-  height: 100%;
-}

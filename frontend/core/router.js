@@ -20,3 +20,13 @@ function navigateTo(page) {
 }
 
 window.navigateTo = navigateTo
+
+// Am Ende von router.js, einmalig aufrufen
+function initSidebarToggle() {
+  const logo = document.getElementById('logo');
+  if (logo) {
+    logo.style.cursor = 'pointer';
+    logo.addEventListener('click', () => navigateTo('home'));
+  }
+}
+window.initSidebarToggle = initSidebarToggle;

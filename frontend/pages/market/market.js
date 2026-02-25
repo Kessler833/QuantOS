@@ -81,7 +81,7 @@ async function _loadHeatmap() {
   updateHeatmapProgress(0);
 
   // Keys via Query-Params (SSE kann kein POST-Body)
-  const url = '/api/market/heatmap/stream';
+  const url = 'http://localhost:8000/api/heatmap/stream';
   const qs = new URLSearchParams({
     alpaca_key: alpacaKey,
     alpaca_secret: alpacaSecret,
