@@ -1,7 +1,7 @@
 ============================================================
   QuantOS – AI Crawler Context
   Projekttyp: Desktop Quant-Trading-Terminal
-  Version:    1.0.0
+  Version:    1.1.0
 ============================================================
 
 
@@ -27,10 +27,11 @@ Frontend    | Vanilla JS, HTML, CSS
 Charts      | Plotly.js (CDN)
 Layout      | Split.js (npm)
 Kommunik.   | REST (fetch) – Frontend → Backend localhost:8000
+Cache       | LocalStorage (QuantCache.js) – API-Keys & Settings
 
 
-ORDNERSTRUKTUR
---------------
+ORDNERSTRUKTUR (NEU: MODULARISIERT)
+------------------------------------
 QuantTERMINAL_OS/
 │
 ├── electron/
@@ -39,28 +40,59 @@ QuantTERMINAL_OS/
 │   └── preload.js      → Electron Preload Script
 │
 ├── frontend/
-│   ├── index.html      → Haupt-HTML, enthält alle Seiten als <div class="page">
-│   │                     Sidebar-Navigation, Plotly-Container, Controls-Panel
-│   ├── css/
-│   │   └── style.css   → Gesamtes Styling (Dark Theme, Panel-Layout)
-│   └── js/
-│       ├── app.js      → Initialisierung, SPA-Navigation (navigateTo),
-│       │                 Sidebar collapsed/expanded per Seite
-│       ├── api.js      → fetch-Wrapper für alle Backend-Endpunkte
-│       │                 (apiModules, apiBacktest, apiSymbols)
-│       ├── backtest.js → Hauptlogik Backtest-Seite:
-│       │                 Split-Panels init, renderChart(), renderEquity(),
-│       │                 renderPerformance(), runBacktest()
-│       ├── home.js     → Homescreen – rendert Modul-Karten
-│       └── symbols.js  → Symbol-Browser Modal (Suche, Filterung, Auswahl)
+│   ├── index.html      → Haupt-HTML, lädt app.js und style.css
+│   │
+│   ├── pages/          → MODULARISIERT: Jede Seite hat eigenen Ordner
+│   │   ├── home/
+│   │   │   ├── home.html    → HTML-Template für Homescreen
+│   │   │   ├── home.css     → Page-spezifisches Styling
+│   │   │   └── home.js      → initHome(), API-Key-Warning, Modul-Karten
+│   │   │
+│   │   ├── backtest/
+│   │   │   ├── backtest.html → HTML-Template (Split-Panels, Chart, Controls)
+│   │   │   ├── backtest.css  → Page-spezifisches Styling
+│   │   │   └── backtest.js   → runBacktest(), renderChart(), renderEquity()
+│   │   │
+│   │   ├── synchro/
+│   │   │   ├── synchro.html → HTML-Template (API-Keys, Cache Reset)
+│   │   │   ├── synchro.css  → Page-spezifisches Styling
+│   │   │   └── synchro.js   → initSynchro(), _saveApiKeys(), _resetPartial/Full()
+│   │   │
+│   │   ├── market/
+│   │   │   ├── market.html  → HTML-Template (Market Dashboard)
+│   │   │   ├── market.css   → Page-spezifisches Styling
+│   │   │   └── market.js    → initMarket() (in development)
+│   │   │
+│   │   └── data/
+│   │       ├── data.html    → HTML-Template (Data Management)
+│   │       ├── data.css     → Page-spezifisches Styling
+│   │       └── data.js      → initData() (in development)
+│   │
+│   ├── shared/         → GLOBAL: Shared Components & Utils
+│   │   ├── css/
+│   │   │   └── global.css   → Base Styles, Colors, Layout, Dark Theme
+│   │   │
+│   │   ├── js/
+│   │   │   ├── app.js       → Core: SPA Navigation (navigateTo), loadPage(),
+│   │   │   │                  Sidebar toggle, page init dispatcher
+│   │   │   ├── api.js       → API Client: apiHealth, apiModules, apiBacktest,
+│   │   │   │                  apiSymbols (fetch-Wrapper für Backend)
+│   │   │   ├── cache.js     → QuantCache: LocalStorage-Manager für API-Keys,
+│   │   │   │                  saveApi(), load(), resetPartial(), resetFull()
+│   │   │   └── symbols.js   → Symbol Browser Modal: Suche, Filterung, Auswahl
+│   │   │
+│   │   └── components/
+│   │       └── sidebar.html → Sidebar Navigation (injected in index.html)
+│   │
+│   └── assets/         → Bilder, Icons, Fonts (falls benötigt)
 │
 ├── backend/
 │   └── main.py         → FastAPI App, alle API-Endpunkte:
-│                         GET  /api/health
-│                         GET  /api/modules   → listet Indikatoren & Strategien
-│                         GET  /api/symbols   → alle handelbare Symbole
-│                         POST /api/backtest  → führt Backtest aus, gibt
-│                                               Chart, Equity, Performance zurück
+│                         POST /api/health  → validiert Alpaca API-Keys
+│                         GET  /api/modules → listet Indikatoren & Strategien
+│                         GET  /api/symbols → alle handelbare Symbole
+│                         POST /api/backtest → führt Backtest aus, gibt
+│                                              Chart, Equity, Performance zurück
 │
 ├── indicators/         → PLUGIN-SYSTEM: jede .py-Datei wird automatisch geladen
 │   ├── __init__.py     → exportiert load_all() Hilfsfunktion
@@ -82,6 +114,68 @@ QuantTERMINAL_OS/
 │                         dependencies: split.js
 │                         devDependencies: electron, electron-builder
 └── AI_CONTEXT.txt      → Diese Datei
+
+
+FRONTEND – SPA NAVIGATION (app.js)
+-----------------------------------
+navigateTo(pageName) → Hauptfunktion für Page-Switching
+  1. Versteckt alle .page Elemente
+  2. Zeigt #page-{pageName} an
+  3. Lädt HTML via loadPage() falls nicht cached
+  4. Ruft page-spezifische init-Funktion auf (initHome, initBacktest, etc.)
+  5. Setzt Sidebar collapsed/expanded State pro Page
+
+loadPage(pageName) → Lädt HTML/CSS/JS dynamisch
+  1. fetch(`frontend/pages/{pageName}/{pageName}.html`)
+  2. Injiziert HTML in #page-{pageName}
+  3. Dynamisches CSS-Loading via <link> in <head>
+  4. Dynamisches JS-Loading via <script> append
+
+
+CACHE-SYSTEM (QuantCache.js)
+-----------------------------
+LocalStorage-basierter Cache für:
+- API-Keys (Alpaca Key & Secret)
+- User Settings (künftig: Layout-Präferenzen, etc.)
+
+API:
+  QuantCache.saveApi({ alpacaKey, alpacaSecret })
+  QuantCache.load() → { api: { alpacaKey, alpacaSecret } }
+  QuantCache.resetPartial() → löscht Settings, behält API-Keys
+  QuantCache.resetFull() → löscht ALLES inkl. API-Keys
+
+API-Keys werden beim Backend-Call via POST /api/health validiert.
+Ungültige Keys werden NICHT gespeichert.
+
+
+SEITEN-ÜBERSICHT
+----------------
+Seite       | Status      | Beschreibung
+------------|-------------|----------------------------------------------
+Home        | ✅ Aktiv    | Modul-Karten-Übersicht, API-Key-Warning
+Backtest    | ✅ Aktiv    | Haupt-Backtesting-Interface (Charts, Controls)
+Synchro     | ✅ Aktiv    | Data & Synchro: API-Keys, Cache Reset
+Market      | 🚧 Dev      | Market Dashboard (in Entwicklung)
+Data        | 🚧 Dev      | Data Management (in Entwicklung)
+
+
+SYNCHRO PAGE (Data & Synchro)
+------------------------------
+Features:
+- API-Key Input & Validation (Alpaca Markets)
+- API-Status-Badge (✅ konfiguriert / ⚠ keine Keys)
+- Partial Reset: Löscht Settings, behält API-Keys
+- Full Reset: Löscht ALLES inkl. API-Keys
+
+UI-Elemente:
+- .api-status-badge → zeigt Key-Status mit farbigen Icons
+- .synchro-notification → zeigt Success/Error Messages
+- .reset-card → Cards für Partial/Full Reset
+
+Icons:
+- ⚠ (Unicode U+26A0) wird per CSS eingefärbt (#ffa726)
+- Emojis (⚠️ mit Variation Selector) werden NICHT verwendet,
+  da sie vom OS gerendert werden und nicht per CSS färbbar sind
 
 
 DATENFLUSS – BACKTEST
@@ -139,17 +233,9 @@ Profit Factor   | gross_profit / abs(gross_loss)
 Calmar Ratio    | total_return / abs(max_drawdown)
 
 
-FRONTEND – SEITEN
------------------
-page-home       → Modulkarten-Übersicht (dynamisch aus apiModules)
-page-backtest   → Haupt-Backtesting-Interface (aktiv)
-page-markov     → Markov-Chain-Analyse (Coming Soon)
-page-optimizer  → Strategie-Optimizer (Coming Soon)
-
-
 FRONTEND – PANEL-LAYOUT (Split.js)
 ------------------------------------
-Vertikale Splits:
+Vertikale Splits (nur Backtest-Page):
   [perf-panel 15%] | [backtest-body 85%]
   [chart-panel 65%] | [equity-panel 35%]
 
@@ -160,6 +246,23 @@ Alle Panels sind per Drag resizable. Performance-Panel hat
 automatisch berechnetes min/maxHeight basierend auf Box-Anzahl.
 
 
+STYLING-SYSTEM (Catppuccin Dark Theme)
+---------------------------------------
+Global Colors (aus global.css):
+  --bg-primary:   #0a0a14  → Haupt-Hintergrund
+  --bg-secondary: #1a1a2e  → Cards, Panels
+  --bg-tertiary:  #2a2a3e  → Borders, Dividers
+  --text-primary: #cdd6f4  → Primärer Text
+  --text-muted:   #6c7086  → Sekundärer Text
+  --accent-blue:  #7aa2f7  → Buttons, Links
+  --accent-green: #26a69a  → Success
+  --accent-red:   #ef5350  → Error
+  --accent-orange:#ffa726  → Warning
+
+Page-spezifisches CSS liegt in frontend/pages/{page}/{page}.css
+Shared Styles (Layout, Typography, Buttons) in frontend/shared/css/global.css
+
+
 BEKANNTE OFFENE PUNKTE (Stand Feb 2026)
 ----------------------------------------
 - strategies/sma_cross.py: Import-Bug (Modul statt Funktion)
@@ -168,5 +271,27 @@ BEKANNTE OFFENE PUNKTE (Stand Feb 2026)
 - slow_period ist hardcoded auf 50 (nicht konfigurierbar)
 - Short-Signale (-1) werden durch .clip(lower=0) ignoriert
 - Math.min/max mit Spread-Operator kann bei langen Zeitreihen crashen
-- Seiten Markov und Optimizer sind noch nicht implementiert
-- split.js und weitere Scripts in index.html doppelt eingebunden
+- Market & Data Pages sind noch nicht implementiert
+- Symbol-Browser Modal hat keine Keyboard-Navigation (Enter zum Bestätigen)
+
+
+ENTWICKLUNGS-GUIDELINES
+------------------------
+1. Neue Seiten: Erstelle Ordner in frontend/pages/{name}/ mit .html/.css/.js
+2. Page Init: Füge init{Name}() Funktion hinzu und registriere in app.js
+3. Styling: Page-spezifisch in {name}.css, Shared in global.css
+4. API-Calls: Nutze Wrapper aus api.js, KEINE direkten fetch() Calls
+5. Cache: Nutze QuantCache für persistente Daten, NICHT direkt localStorage
+6. Icons: Verwende Unicode-Zeichen (⚠ U+26A0) statt Emojis für CSS-Kontrolle
+7. Navigation: IMMER navigateTo() verwenden, NIEMALS direkt DOM manipulieren
+8. Performance: Lazy-Loading für Pages, nur aktive Page ist im DOM
+
+
+DEPLOYMENT
+----------
+Entwicklung:
+  1. Backend starten: cd backend && uvicorn main:app --reload
+  2. Electron starten: npm start
+
+Production Build:
+  npm run build → erstellt Installer für macOS/Windows/Linux
