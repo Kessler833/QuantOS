@@ -1,0 +1,146 @@
+/* ══════════════════════════════════════════════════════════
+   MARKET PAGE
+   ══════════════════════════════════════════════════════════ */
+
+#page-market {
+  overflow: hidden;
+}
+
+.market-container {
+  display: flex;
+  flex-direction: column;
+  height: 100%;
+  overflow: hidden;
+}
+
+.market-header {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  padding: 8px 14px;
+  background: #0d0d1e;
+  border-bottom: 1px solid #1e1e30;
+  flex-shrink: 0;
+}
+
+.market-title {
+  font-size: 13px;
+  font-weight: 700;
+  color: #7aa2f7;
+}
+
+.heatmap-tf-group {
+  display: flex;
+  gap: 4px;
+}
+
+.heatmap-tf-btn {
+  background: #1a1a2e;
+  border: 1px solid #2a2a3e;
+  color: #6c7086;
+  padding: 4px 10px;
+  border-radius: 4px;
+  cursor: pointer;
+  font-size: 11px;
+  font-weight: 600;
+  transition: all 0.15s;
+}
+
+.heatmap-tf-btn.active,
+.heatmap-tf-btn:hover {
+  border-color: #7aa2f7;
+  color: #7aa2f7;
+  background: #1e1e2e;
+}
+
+.heatmap-count {
+  font-size: 11px;
+  color: #6c7086;
+  margin-left: 4px;
+}
+
+.heatmap-delay-hint {
+  font-size: 11px;
+  color: #3a3a5e;
+  font-style: italic;
+  white-space: nowrap;
+}
+
+.heatmap-refresh-btn {
+  margin-left: auto;
+  background: #1a1a2e;
+  border: 1px solid #2a2a3e;
+  color: #7aa2f7;
+  padding: 5px 12px;
+  border-radius: 5px;
+  cursor: pointer;
+  font-size: 12px;
+  font-weight: 600;
+  transition: all 0.15s;
+}
+
+.heatmap-refresh-btn:hover {
+  border-color: #7aa2f7;
+  background: #1e1e2e;
+}
+
+#heatmap-grid {
+  flex: 1;
+  overflow-y: auto;
+  display: flex;
+  flex-wrap: wrap;
+  align-content: flex-start;
+  gap: 3px;
+  padding: 10px;
+}
+
+#heatmap-grid::-webkit-scrollbar       { width: 6px; }
+#heatmap-grid::-webkit-scrollbar-track { background: #0d0d1e; }
+#heatmap-grid::-webkit-scrollbar-thumb { background: #2a2a3e; border-radius: 3px; }
+#heatmap-grid::-webkit-scrollbar-thumb:hover { background: #7aa2f7; }
+
+.heatmap-cell {
+  width: 72px;
+  height: 52px;
+  border-radius: 4px;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  cursor: pointer;
+  transition: transform 0.1s, filter 0.1s;
+  flex-shrink: 0;
+}
+
+.heatmap-cell:hover {
+  transform: scale(1.08);
+  filter: brightness(1.2);
+  z-index: 2;
+}
+
+.heatmap-symbol {
+  font-size: 10px;
+  font-weight: 700;
+  color: rgba(255,255,255,0.9);
+}
+
+.heatmap-pct {
+  font-size: 11px;
+  font-weight: 600;
+  color: rgba(255,255,255,0.85);
+}
+
+.heatmap-loading,
+.heatmap-placeholder,
+.heatmap-error,
+.heatmap-no-api {
+  width: 100%;
+  text-align: center;
+  padding: 60px 20px;
+  color: #6c7086;
+  font-size: 13px;
+  line-height: 1.6;
+}
+
+.heatmap-error    { color: #ef5350; }
+.heatmap-no-api   { color: #3a3a5e; }

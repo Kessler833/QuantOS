@@ -1,0 +1,181 @@
+/* ══════════════════════════════════════════════════════════
+   SYNCHRO PAGE
+   ══════════════════════════════════════════════════════════ */
+
+.synchro-container {
+  max-width: 680px;
+  margin: 0 auto;
+  padding: 40px 24px;
+  display: flex;
+  flex-direction: column;
+  gap: 24px;
+  overflow-y: auto;
+  height: 100%;
+}
+
+.synchro-container h1 {
+  font-size: 24px;
+  font-weight: 800;
+  color: #cdd6f4;
+}
+
+.synchro-container .subtitle {
+  font-size: 13px;
+  color: #6c7086;
+  margin-top: -16px;
+}
+
+.api-status-badge {
+  background: #1a1a2e;
+  border: 1px solid #2a2a3e;
+  border-radius: 8px;
+  padding: 10px 16px;
+  font-size: 12px;
+  color: #6c7086;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.synchro-notification {
+  font-size: 12px;
+  min-height: 20px;
+  padding: 0 4px;
+}
+
+.synchro-section {
+  background: #1a1a2e;
+  border: 1px solid #2a2a3e;
+  border-radius: 10px;
+  padding: 20px 24px;
+  display: flex;
+  flex-direction: column;
+  gap: 14px;
+}
+
+.synchro-section h2 {
+  font-size: 15px;
+  font-weight: 700;
+  color: #cdd6f4;
+}
+
+.section-desc {
+  font-size: 12px;
+  color: #6c7086;
+  margin-top: -8px;
+  line-height: 1.5;
+}
+
+.synchro-field {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+
+.synchro-field label {
+  font-size: 11px;
+  font-weight: 600;
+  color: #6c7086;
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+}
+
+.synchro-field input {
+  background: #0d0d1e;
+  border: 1px solid #2a2a3e;
+  color: #cdd6f4;
+  padding: 9px 12px;
+  border-radius: 6px;
+  font-size: 13px;
+  outline: none;
+  transition: border-color 0.15s;
+  font-family: monospace;
+}
+
+.synchro-field input:focus {
+  border-color: #7aa2f7;
+}
+
+.synchro-btn {
+  padding: 9px 18px;
+  border-radius: 6px;
+  border: none;
+  font-size: 13px;
+  font-weight: 700;
+  cursor: pointer;
+  transition: all 0.15s;
+  align-self: flex-start;
+}
+
+.synchro-btn.primary {
+  background: #7aa2f7;
+  color: #0a0a14;
+}
+
+.synchro-btn.primary:hover {
+  background: #5a82d7;
+  transform: translateY(-1px);
+}
+
+.synchro-btn.secondary {
+  background: #1a1a2e;
+  color: #cdd6f4;
+  border: 1px solid #2a2a3e;
+}
+
+.synchro-btn.secondary:hover {
+  border-color: #7aa2f7;
+  transform: translateY(-1px);
+}
+
+.synchro-btn.danger {
+  background: #1a1a2e;
+  color: #ef5350;
+  border: 1px solid #ef5350;
+}
+
+.synchro-btn.danger:hover {
+  background: #ef5350;
+  color: #fff;
+  transform: translateY(-1px);
+}
+
+.synchro-divider {
+  height: 1px;
+  background: #2a2a3e;
+}
+
+.synchro-reset-grid {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 14px;
+}
+
+.reset-card {
+  background: #0d0d1e;
+  border: 1px solid #2a2a3e;
+  border-radius: 8px;
+  padding: 16px;
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.reset-card.danger {
+  border-color: rgba(239, 83, 80, 0.3);
+}
+
+.reset-icon { font-size: 24px; }
+
+.reset-card h3 {
+  font-size: 13px;
+  font-weight: 700;
+  color: #cdd6f4;
+}
+
+.reset-card p {
+  font-size: 11px;
+  color: #6c7086;
+  line-height: 1.5;
+  flex: 1;
+}
