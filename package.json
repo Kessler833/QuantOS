@@ -3,7 +3,13 @@
   "version": "1.0.0",
   "main": "electron/main.js",
   "scripts": {
+<<<<<<< HEAD
     "start": "electron ."
+=======
+    "start": "concurrently \"uvicorn backend.main:app --reload --port 8000\" \"electron .\"",
+    "electron": "electron .",
+    "backend": "uvicorn backend.main:app --reload --port 8000"
+>>>>>>> fa1e9cdf2b4f300783f443f017b80fcb337aaa49
   },
   "devDependencies": {
     "electron": "^33.0.0",
