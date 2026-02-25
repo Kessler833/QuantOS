@@ -2,15 +2,20 @@
    SYNCHRO PAGE
    ══════════════════════════════════════════════════════════ */
 
+#page-synchro {
+  overflow-y: auto;
+}
+
+#page-synchro::-webkit-scrollbar { width: 8px; }
+#page-synchro::-webkit-scrollbar-track { background: #0d0d1e; }
+#page-synchro::-webkit-scrollbar-thumb { background: #2a2a3e; border-radius: 4px; }
+#page-synchro::-webkit-scrollbar-thumb:hover { background: #7aa2f7; }
+
 .synchro-container {
-  max-width: 680px;
-  margin: 0 auto;
-  padding: 40px 24px;
+  padding: 60px 40px 40px 40px;
   display: flex;
   flex-direction: column;
   gap: 24px;
-  overflow-y: auto;
-  height: 100%;
 }
 
 .synchro-container h1 {

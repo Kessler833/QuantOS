@@ -2,11 +2,12 @@
    BACKTEST PAGE
    ══════════════════════════════════════════════════════════ */
 
-#page-backtest {
+#page-backtest.active {
   display: flex;
   flex-direction: column;
   overflow: hidden;
 }
+
 
 /* ── PERFORMANCE PANEL (TOP) ────────────────────────────── */
 #perf-panel {

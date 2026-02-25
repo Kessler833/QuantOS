@@ -2,9 +2,9 @@ async function init() {
   const modules = await apiModules()
 
   // Pages initialisieren
-  await _injectPageHTML('page-home',    'pages/home/home.html')
-  await _injectPageHTML('page-market',  'pages/market/market.html')
-  await _injectPageHTML('page-synchro', 'pages/synchro/synchro.html')
+  await _injectPageHTML('page-home',    './pages/home/home.html')
+  await _injectPageHTML('page-market',  './pages/market/market.html')
+  await _injectPageHTML('page-synchro', './pages/synchro/synchro.html')
 
   initHome()
   initBacktest(modules)
@@ -15,7 +15,6 @@ async function init() {
     item.addEventListener('click', () => navigateTo(item.dataset.page))
   })
 
-  // Page-activated Event listener
   document.addEventListener('page-activated', (e) => {
     const page = e.detail.page
     if (page === 'home')   initHome()

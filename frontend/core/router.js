@@ -1,4 +1,4 @@
-export function navigateTo(page) {
+function navigateTo(page) {
   document.querySelectorAll('.page').forEach(p => p.classList.remove('active'))
   document.querySelectorAll('.nav-item').forEach(n => n.classList.remove('active'))
 
@@ -15,10 +15,8 @@ export function navigateTo(page) {
     sidebar.classList.add('collapsed')
   }
 
-  // Page-spezifische Callbacks
   const event = new CustomEvent('page-activated', { detail: { page } })
   document.dispatchEvent(event)
 }
 
-// Global verfügbar machen
 window.navigateTo = navigateTo

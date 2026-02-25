@@ -14,17 +14,19 @@ body {
   color: #cdd6f4;
   overflow: hidden;
   height: 100vh;
+  display: flex;
+}
+
+#sidebar {
+  flex-shrink: 0;
 }
 
 #main-content {
-  margin-left: 180px;
+  flex: 1;
   height: 100vh;
   overflow: hidden;
-  transition: margin-left 0.3s ease;
-}
-
-#sidebar.collapsed ~ #main-content {
-  margin-left: 60px;
+  display: flex;
+  flex-direction: column;
 }
 
 .page {
@@ -57,4 +59,14 @@ body {
 .coming-soon h2 {
   font-size: 22px;
   margin-bottom: 8px;
+}
+
+.page {
+  display: none !important;
+}
+
+.page.active {
+  display: flex !important;
+  flex-direction: column;
+  height: 100%;
 }

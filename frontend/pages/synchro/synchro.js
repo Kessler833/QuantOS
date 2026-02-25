@@ -3,7 +3,6 @@ function initSynchro() {
   const container = document.getElementById('page-synchro')
   if (!container) return
 
-  // HTML aus synchro.html injizieren (falls nicht schon via app.js)
   if (!container.querySelector('.synchro-container')) return
 
   const cached  = QuantCache.load()
@@ -25,7 +24,7 @@ function initSynchro() {
     const secret = secretInput?.value.trim()
 
     if (!key || !secret) {
-      _showNotif(notif, '⚠️ Bitte beide Felder ausfüllen.', 'warn')
+      _showNotif(notif, '<span style="color:#ffa726;">⚠</span> Bitte beide Felder ausfüllen.', 'warn')
       return
     }
 
@@ -53,26 +52,29 @@ function initSynchro() {
 
   // ── Full Reset ────────────────────────────────────────
   document.getElementById('btn-reset-full')?.addEventListener('click', () => {
-    if (!confirm('⚠️ Wirklich ALLE Daten löschen inkl. API-Keys?')) return
+    if (!confirm('Wirklich ALLE Daten löschen inkl. API-Keys?')) return
     QuantCache.resetFull()
     if (keyInput)    keyInput.value    = ''
     if (secretInput) secretInput.value = ''
     _updateStatusBadge(statusBadge, false)
-    _showNotif(notif, '🗑️ Full Reset durchgeführt.', 'success')
+    if (notif) {
+      notif.innerHTML = '<span style="color:#26a69a;">✓</span> Full Reset durchgeführt.'
+      setTimeout(() => { notif.innerHTML = '' }, 4000)
+    }
   })
 }
 
 function _updateStatusBadge(el, valid) {
   if (!el) return
   el.innerHTML = valid
-    ? '✅ <span style="color:#26a69a;">API-Keys konfiguriert</span>'
-    : '⚠️ <span style="color:#ef5350;">Keine API-Keys</span>'
+    ? '<span style="color:#26a69a;">✓</span> <span style="color:#26a69a;">API-Keys konfiguriert</span>'
+    : '<span style="color:#ffa726;">⚠</span> <span style="color:#ef5350;">Keine API-Keys</span>'
 }
 
 function _showNotif(el, msg, type) {
   if (!el) return
   const colors = { success: '#26a69a', error: '#ef5350', warn: '#ffa726', info: '#7aa2f7' }
   el.style.color = colors[type] || '#cdd6f4'
-  el.textContent = msg
-  if (type === 'success') setTimeout(() => { el.textContent = '' }, 4000)
+  el.innerHTML = msg
+  if (type === 'success') setTimeout(() => { el.innerHTML = '' }, 4000)
 }

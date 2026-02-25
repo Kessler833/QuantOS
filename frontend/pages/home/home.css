@@ -1,30 +1,43 @@
 .home-container {
   display: flex;
   flex-direction: column;
-  align-items: center;
-  justify-content: center;
   height: 100%;
-  gap: 24px;
-  padding: 40px;
+  padding: 60px 40px 40px 40px;
+  overflow-y: auto;
 }
 
 .home-container h1 {
   font-size: 32px;
   font-weight: 800;
   color: #cdd6f4;
+  margin-bottom: 4px;
 }
 
 .home-container .subtitle {
   font-size: 14px;
   color: #6c7086;
+  margin-bottom: 32px;
+}
+
+#home-api-warning {
+  width: 100%;
+  margin-bottom: 24px;
+}
+
+.api-key-warning {
+  background: #1a1a2e;
+  border: 1px solid #ef5350;
+  border-radius: 10px;
+  padding: 20px 28px;
+  text-align: center;
+  width: 100%;
 }
 
 .home-cards {
   display: flex;
   flex-wrap: wrap;
   gap: 16px;
-  justify-content: center;
-  max-width: 900px;
+  width: 100%;
 }
 
 .home-card {
@@ -48,14 +61,6 @@
 .home-card-title { font-size: 14px; font-weight: 700; color: #cdd6f4; margin-bottom: 6px; }
 .home-card-desc  { font-size: 11px; color: #6c7086; line-height: 1.4; }
 
-.api-key-warning {
-  background: #1a1a2e;
-  border: 1px solid #ef5350;
-  border-radius: 10px;
-  padding: 20px 28px;
-  text-align: center;
-}
-
 .btn-primary {
   background: #7aa2f7;
   color: #0a0a14;
@@ -68,4 +73,7 @@
   transition: all 0.2s ease;
 }
 
-.btn-primary:hover { transform: translateY(-2px); }
+.btn-primary:hover { 
+  transform: translateY(-2px);
+  background: #5a82d7;
+}

@@ -12,11 +12,11 @@ function _checkApiKeysOnHome() {
   if (!apiKeys.alpacaKey || !apiKeys.alpacaSecret) {
     warning.innerHTML = `
       <div class="api-key-warning">
-        <div style="font-size:36px;margin-bottom:8px;">🔐</div>
-        <div style="color:#ef5350;font-size:15px;font-weight:700;margin-bottom:6px;">
+        <div style="font-size:28px;margin-bottom:6px;">🔐</div>
+        <div style="color:#ef5350;font-size:13px;font-weight:700;margin-bottom:4px;">
           Keine API-Keys konfiguriert
         </div>
-        <div style="color:#a0a0b8;font-size:12px;margin-bottom:12px;line-height:1.4;">
+        <div style="color:#a0a0b8;font-size:11px;margin-bottom:10px;line-height:1.4;">
           Trage deine Alpaca API-Keys ein um Backtests durchzuführen
         </div>
         <button onclick="navigateTo('synchro')" class="btn-primary">
